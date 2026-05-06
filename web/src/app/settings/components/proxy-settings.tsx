@@ -127,7 +127,7 @@ export function ProxySettingsCard() {
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
               <input
                 type="checkbox"
-                className="mt-1 size-4 rounded border-border text-content focus:ring-stone-900"
+                className="mt-1 size-4 rounded border-border text-content focus:ring-primary-500"
                 checked={formEnabled}
                 onChange={(event) => setFormEnabled(event.target.checked)}
               />

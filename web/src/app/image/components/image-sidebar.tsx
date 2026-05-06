@@ -73,7 +73,7 @@ export function ImageSidebar({
                     "group relative w-full border-l-2 text-left transition",
                     hideActionButtons ? "px-4 py-3.5" : "px-3 py-2 sm:py-3",
                     active
-                      ? "border-stone-900 bg-black/[0.035] text-content"
+                      ? "border-primary-600 bg-black/[0.035] text-content"
                       : "border-transparent text-content hover:border-border hover:bg-white/40",
                   )}
                 >

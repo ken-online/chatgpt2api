@@ -247,7 +247,7 @@ export function ImageComposer({
                   type="button"
                   onClick={() => void onSubmit()}
                   disabled={!prompt.trim()}
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-stone-300 sm:size-11"
+                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-surface-tertiary sm:size-11"
                   aria-label={referenceImages.length > 0 ? "Chỉnh sửa ảnh" : "Tạo ảnh"}
                 >
                   <ArrowUp className="size-3.5 sm:size-4" />

@@ -115,7 +115,7 @@ export function ImportBrowserDialog() {
             {pagedFiles.length === 0 ? (
               <div className="flex items-center justify-center py-12 text-sm text-content-tertiary">Không có tài khoản từ xa nào khớp</div>
             ) : (
-              <div className="divide-y divide-stone-100">
+              <div className="divide-y divide-border">
                 {pagedFiles.map((item) => (
                   <label key={item.name} className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-surface-secondary">
                     <Checkbox

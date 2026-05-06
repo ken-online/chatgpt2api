@@ -515,7 +515,7 @@ export function Sub2APIConnections() {
                               </div>
                               <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-tertiary">
                                 <div
-                                  className="h-full rounded-full bg-stone-900 transition-all"
+                                  className="h-full rounded-full bg-primary-600 transition-all"
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
@@ -794,7 +794,7 @@ export function Sub2APIConnections() {
               {pagedAccounts.length === 0 ? (
                 <div className="flex items-center justify-center py-12 text-sm text-content-tertiary">Không có tài khoản phù hợp</div>
               ) : (
-                <div className="divide-y divide-stone-100">
+                <div className="divide-y divide-border">
                   {pagedAccounts.map((item) => (
                     <label
                       key={item.id}

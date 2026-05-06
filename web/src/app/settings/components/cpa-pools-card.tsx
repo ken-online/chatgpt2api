@@ -137,7 +137,7 @@ export function CPAPoolsCard() {
                           </Badge>
                         </div>
                         <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-tertiary">
-                          <div className="h-full rounded-full bg-stone-900 transition-all" style={{ width: `${progress}%` }} />
+                          <div className="h-full rounded-full bg-primary-600 transition-all" style={{ width: `${progress}%` }} />
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2 text-xs text-content-tertiary">
                           <span>Mới {importJob.added}</span>

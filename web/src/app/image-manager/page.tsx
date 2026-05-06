@@ -409,7 +409,7 @@ function ImageManagerContent() {
                         {tag}
                         <button
                           type="button"
-                          className="inline-flex size-3.5 items-center justify-center rounded-full hover:bg-stone-300"
+                          className="inline-flex size-3.5 items-center justify-center rounded-full hover:bg-surface-tertiary"
                           onClick={() => handleRemoveTag(item, tag)}
                         >
                           <X className="size-2.5" />
@@ -420,7 +420,7 @@ function ImageManagerContent() {
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex size-5 items-center justify-center rounded-full border border-dashed border-border text-content-tertiary hover:border-stone-500 hover:text-content-secondary"
+                          className="inline-flex size-5 items-center justify-center rounded-full border border-dashed border-border text-content-tertiary hover:border-content-tertiary hover:text-content-secondary"
                           title="Thêm nhãn"
                         >
                           <Plus className="size-3" />
