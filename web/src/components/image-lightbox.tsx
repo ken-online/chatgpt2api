@@ -120,12 +120,29 @@ export function ImageLightbox({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, goPrev, goNext]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!current) return;
-    const link = document.createElement("a");
-    link.href = current.src;
-    link.download = `image-${current.id}.png`;
-    link.click();
+    const src = current.src;
+    const filename = `image-${current.id}.png`;
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      const link = document.createElement("a");
+      link.href = src;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   }, [current]);
 
   const toggleZoom = useCallback(() => {
@@ -249,7 +266,7 @@ export function ImageLightbox({
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           <DialogPrimitive.Title className="sr-only">
-            图片预览
+            Xem trước ảnh
           </DialogPrimitive.Title>
 
           <div className="absolute top-[calc(env(safe-area-inset-top)+1rem)] right-4 z-10 flex items-center gap-2">
@@ -265,15 +282,15 @@ export function ImageLightbox({
             )}
             <button
               type="button"
-              onClick={handleDownload}
+              onClick={() => void handleDownload()}
               className="inline-flex size-9 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70"
-              aria-label="下载图片"
+              aria-label="Tải xuống ảnh"
             >
               <Download className="size-4" />
             </button>
             <DialogPrimitive.Close className="inline-flex size-9 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70">
               <X className="size-4" />
-              <span className="sr-only">关闭</span>
+              <span className="sr-only">Đóng</span>
             </DialogPrimitive.Close>
           </div>
 
@@ -282,7 +299,7 @@ export function ImageLightbox({
               type="button"
               onClick={goPrev}
               className="absolute left-4 z-10 inline-flex size-10 items-center justify-center rounded-full bg-black/40 text-white/90 transition hover:bg-black/60"
-              aria-label="上一张"
+              aria-label="Ảnh trước"
             >
               <ChevronLeft className="size-5" />
             </button>
@@ -319,7 +336,7 @@ export function ImageLightbox({
               type="button"
               onClick={goNext}
               className="absolute right-4 z-10 inline-flex size-10 items-center justify-center rounded-full bg-black/40 text-white/90 transition hover:bg-black/60"
-              aria-label="下一张"
+              aria-label="Ảnh tiếp theo"
             >
               <ChevronRight className="size-5" />
             </button>

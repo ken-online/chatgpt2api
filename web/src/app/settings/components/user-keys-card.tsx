@@ -55,7 +55,7 @@ export function UserKeysCard() {
       const data = await fetchUserKeys();
       setItems(data.items);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "加载用户密钥失败");
+      toast.error(error instanceof Error ? error.message : "Không thể tải các khoá người dùng");
     } finally {
       setIsLoading(false);
     }
@@ -77,9 +77,9 @@ export function UserKeysCard() {
       setRevealedKey(data.key);
       setName("");
       setIsDialogOpen(false);
-      toast.success("用户密钥已创建");
+      toast.success("Khoá người dùng đã được tạo");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "创建用户密钥失败");
+      toast.error(error instanceof Error ? error.message : "Không thể tạo khoá người dùng");
     } finally {
       setIsCreating(false);
     }
@@ -102,9 +102,9 @@ export function UserKeysCard() {
     try {
       const data = await updateUserKey(item.id, { enabled: !item.enabled });
       setItems(data.items);
-      toast.success(item.enabled ? "用户密钥已禁用" : "用户密钥已启用");
+      toast.success(item.enabled ? "Khoá người dùng đã bị vô hiệu hoá" : "Khoá người dùng đã được bật");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "更新用户密钥失败");
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật khoá người dùng");
     } finally {
       setItemPending(item.id, false);
     }
@@ -120,9 +120,9 @@ export function UserKeysCard() {
       const data = await deleteUserKey(item.id);
       setItems(data.items);
       setDeletingItem(null);
-      toast.success("用户密钥已删除");
+      toast.success("Khoá người dùng đã được xoá");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "删除用户密钥失败");
+      toast.error(error instanceof Error ? error.message : "Không thể xoá khoá người dùng");
     } finally {
       setItemPending(item.id, false);
     }
@@ -154,9 +154,9 @@ export function UserKeysCard() {
       setItems(data.items);
       setEditingItem(null);
       setEditKey("");
-      toast.success(trimmedKey ? "用户密钥已更新" : "用户名称已更新");
+      toast.success(trimmedKey ? "Khoá người dùng đã được cập nhật" : "Tên người dùng đã được cập nhật");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "更新用户密钥失败");
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật khoá người dùng");
     } finally {
       setItemPending(item.id, false);
     }
@@ -165,9 +165,9 @@ export function UserKeysCard() {
   const handleCopy = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success("已复制到剪贴板");
+      toast.success("Đã sao chép vào bộ nhớ tạm");
     } catch {
-      toast.error("复制失败，请手动复制");
+      toast.error("Không thể sao chép, vui lòng sao chép thủ công");
     }
   };
 
@@ -181,19 +181,19 @@ export function UserKeysCard() {
                 <KeyRound className="size-5 text-stone-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold tracking-tight">用户密钥管理</h2>
-                <p className="text-sm text-stone-500">为普通用户创建专用密钥；普通用户只能进入画图页，不能查看设置和号池。</p>
+                <h2 className="text-lg font-semibold tracking-tight">Quản lý khoá người dùng</h2>
+                <p className="text-sm text-stone-500">Tạo các khoá chuyên dụng cho người dùng thông thường; người dùng thông thường chỉ có thể truy cập trang vẽ, không thể xem cài đặt và nhóm tài khoản.</p>
               </div>
             </div>
             <Button className="h-9 rounded-xl bg-stone-950 px-4 text-white hover:bg-stone-800" onClick={() => setIsDialogOpen(true)}>
               <Plus className="size-4" />
-              创建用户密钥
+              Tạo khoá người dùng
             </Button>
           </div>
 
           {revealedKey ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
-              <div className="font-medium">新密钥仅展示一次，请立即保存：</div>
+              <div className="font-medium">Khoá mới chỉ được hiển thị một lần, vui lòng lưu ngay:</div>
               <div className="mt-3 flex flex-col gap-3 rounded-lg border border-emerald-200 bg-white/80 p-3 md:flex-row md:items-center md:justify-between">
                 <code className="break-all font-mono text-[13px]">{revealedKey}</code>
                 <Button
@@ -203,7 +203,7 @@ export function UserKeysCard() {
                   onClick={() => void handleCopy(revealedKey)}
                 >
                   <Copy className="size-4" />
-                  复制
+                  Sao chép
                 </Button>
               </div>
             </div>
@@ -215,7 +215,7 @@ export function UserKeysCard() {
             </div>
           ) : items.length === 0 ? (
             <div className="rounded-xl bg-stone-50 px-6 py-10 text-center text-sm text-stone-500">
-              暂无普通用户密钥。点击右上角按钮后即可创建并分发给其他人。
+              Không có khoá người dùng thường xuyên nào. Bạn có thể tạo và phân phối cho người khác bằng cách nhấp vào nút ở góc trên cùng bên phải.
             </div>
           ) : (
             <div className="space-y-3">
@@ -227,12 +227,12 @@ export function UserKeysCard() {
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="truncate text-sm font-medium text-stone-800">{item.name}</div>
                         <Badge variant={item.enabled ? "success" : "secondary"} className="rounded-md">
-                          {item.enabled ? "已启用" : "已禁用"}
+                          {item.enabled ? "Đã bật" : "Đã tắt"}
                         </Badge>
                       </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
-                        <span>创建时间 {formatDateTime(item.created_at)}</span>
-                        <span>最近使用 {formatDateTime(item.last_used_at)}</span>
+                        <span>Thời gian tạo {formatDateTime(item.created_at)}</span>
+                        <span>Lần sử dụng gần nhất {formatDateTime(item.last_used_at)}</span>
                       </div>
                     </div>
 
@@ -245,7 +245,7 @@ export function UserKeysCard() {
                         disabled={isPending}
                       >
                         {isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Pencil className="size-4" />}
-                        编辑
+                        Chỉnh sửa
                       </Button>
                       <Button
                         type="button"
@@ -261,7 +261,7 @@ export function UserKeysCard() {
                         ) : (
                           <CheckCircle2 className="size-4" />
                         )}
-                        {item.enabled ? "禁用" : "启用"}
+                        {item.enabled ? "Vô hiệu hoá" : "Bật"}
                       </Button>
                       <Button
                         type="button"
@@ -271,7 +271,7 @@ export function UserKeysCard() {
                         disabled={isPending}
                       >
                         {isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-                        删除
+                        Xoá
                       </Button>
                     </div>
                   </div>
@@ -285,17 +285,17 @@ export function UserKeysCard() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="rounded-2xl p-6">
           <DialogHeader className="gap-2">
-            <DialogTitle>创建用户密钥</DialogTitle>
+            <DialogTitle>Tạo khoá người dùng</DialogTitle>
             <DialogDescription className="text-sm leading-6">
-              可选填写一个备注名称，方便区分不同使用者；创建后会生成一条只能查看一次的原始密钥。
+              Tùy chọn ghi chú tên để phân biệt các người dùng khác nhau; khi tạo, nó sẽ tạo ra một khoá thô chỉ có thể xem một lần.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">名称（可选）</label>
+            <label className="text-sm font-medium text-stone-700">Tên (tuỳ chọn)</label>
             <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="例如：设计同学 A、运营临时账号"
+              placeholder="Ví dụ: bạn thiết kế A, tài khoản tạm thời vận hành"
               className="h-11 rounded-xl border-stone-200 bg-white"
             />
           </div>
@@ -307,7 +307,7 @@ export function UserKeysCard() {
               onClick={() => setIsDialogOpen(false)}
               disabled={isCreating}
             >
-              取消
+              Huỷ
             </Button>
             <Button
               type="button"
@@ -316,7 +316,7 @@ export function UserKeysCard() {
               disabled={isCreating}
             >
               {isCreating ? <LoaderCircle className="size-4 animate-spin" /> : <Plus className="size-4" />}
-              创建
+              Tạo
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -325,9 +325,9 @@ export function UserKeysCard() {
       <Dialog open={Boolean(deletingItem)} onOpenChange={(open) => (!open ? setDeletingItem(null) : null)}>
         <DialogContent className="rounded-2xl p-6">
           <DialogHeader className="gap-2">
-            <DialogTitle>删除用户密钥</DialogTitle>
+            <DialogTitle>Xoá khoá người dùng</DialogTitle>
             <DialogDescription className="text-sm leading-6">
-              确认删除用户密钥「{deletingItem?.name}」吗？删除后该密钥将无法继续调用接口。
+              Xác nhận xoá khoá người dùng "{deletingItem?.name}"? Sau khi xoá, khoá này sẽ không thể tiếp tục gọi API.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -338,7 +338,7 @@ export function UserKeysCard() {
               onClick={() => setDeletingItem(null)}
               disabled={deletingItem ? pendingIds.has(deletingItem.id) : false}
             >
-              取消
+              Huỷ
             </Button>
             <Button
               type="button"
@@ -347,7 +347,7 @@ export function UserKeysCard() {
               disabled={deletingItem ? pendingIds.has(deletingItem.id) : false}
             >
               {deletingItem && pendingIds.has(deletingItem.id) ? <LoaderCircle className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-              删除
+              Xoá
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -364,31 +364,31 @@ export function UserKeysCard() {
       >
         <DialogContent className="rounded-2xl p-6">
           <DialogHeader className="gap-2">
-            <DialogTitle>编辑用户密钥</DialogTitle>
+            <DialogTitle>Chỉnh sửa khoá người dùng</DialogTitle>
             <DialogDescription className="text-sm leading-6">
-              可以修改备注名称；如需更换专用密钥，直接填写新的原始密钥即可。留空则保持当前密钥不变。
+              Bạn có thể sửa tên ghi chú; nếu muốn thay đổi khoá chuyên dụng, chỉ cần nhập khoá thô mới. Để trống sẽ giữ nguyên khoá hiện tại.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-stone-700">名称</label>
+              <label className="text-sm font-medium text-stone-700">Tên</label>
               <Input
                 value={editName}
                 onChange={(event) => setEditName(event.target.value)}
-                placeholder="例如：设计同学 A、运营临时账号"
+                placeholder="Ví dụ: bạn thiết kế A, tài khoản tạm thời vận hành"
                 className="h-11 rounded-xl border-stone-200 bg-white"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-stone-700">新的专用密钥（可选）</label>
+              <label className="text-sm font-medium text-stone-700">Khoá chuyên dụng mới (tuỳ chọn)</label>
               <Input
                 value={editKey}
                 onChange={(event) => setEditKey(event.target.value)}
-                placeholder="例如：sk-your-custom-user-key"
+                placeholder="Ví dụ: sk-your-custom-user-key"
                 className="h-11 rounded-xl border-stone-200 bg-white font-mono"
               />
               <p className="text-xs leading-5 text-stone-500">
-                保存后旧密钥会立即失效，新密钥生效。系统仍只保存哈希，不会回显当前密钥。
+                Sau khi lưu, khoá cũ sẽ lập tức vô hiệu hóa và khoá mới có hiệu lực. Hệ thống vẫn chỉ lưu trữ hàm băm và sẽ không hiển thị lại khoá hiện tại.
               </p>
             </div>
           </div>
@@ -403,7 +403,7 @@ export function UserKeysCard() {
               }}
               disabled={editingItem ? pendingIds.has(editingItem.id) : false}
             >
-              取消
+              Huỷ
             </Button>
             <Button
               type="button"
@@ -412,7 +412,7 @@ export function UserKeysCard() {
               disabled={editingItem ? pendingIds.has(editingItem.id) : false}
             >
               {editingItem && pendingIds.has(editingItem.id) ? <LoaderCircle className="size-4 animate-spin" /> : <Pencil className="size-4" />}
-              保存
+              Lưu
             </Button>
           </DialogFooter>
         </DialogContent>

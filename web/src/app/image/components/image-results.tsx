@@ -74,7 +74,7 @@ export function ImageResults({
               fontFamily: '"Palatino Linotype","Book Antiqua","URW Palladio L","Times New Roman",serif',
             }}
           >
-            在同一窗口里保留本地历史与任务状态，并从已有结果图继续发起新的无状态编辑。
+            Giữ lịch sử cục bộ và trạng thái công việc trong cùng một cửa sổ, và bắt đầu chỉnh sửa không trạng thái mới từ hình ảnh kết quả hiện có.
           </p>
         </div>
       </div>
@@ -108,9 +108,9 @@ export function ImageResults({
               <div className="flex justify-end">
                 <div className="max-w-[90%] px-1 py-1 text-[14px] leading-6 text-stone-900 sm:max-w-[82%] sm:text-[15px] sm:leading-7">
                   <div className="mb-1.5 flex flex-wrap justify-end gap-2 text-[11px] text-stone-400 sm:mb-2">
-                    <span>第 {turnIndex + 1} 轮</span>
+                    <span>Lần {turnIndex + 1}</span>
                     <span>
-                      {turn.mode === "edit" ? "编辑图" : "文生图"}
+                      {turn.mode === "edit" ? "Chỉnh sửa ảnh" : "Tạo từ văn bản"}
                     </span>
                     <span>{getTurnStatusLabel(turn.status)}</span>
                     <span>{formatConversationTime(turn.createdAt)}</span>
@@ -122,13 +122,13 @@ export function ImageResults({
                       onClick={() => void onReuseTurnConfig(selectedConversation.id, turn.id)}
                       className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-medium text-stone-600 transition hover:bg-stone-200 hover:text-stone-900"
                     >
-                      复用配置
+                      Sử dụng lại cấu hình
                     </button>
                     <button
                       type="button"
                       onClick={() => onDeletePrompt(selectedConversation.id, turn.id)}
                       className="inline-flex size-6 items-center justify-center rounded-full text-stone-300 transition hover:bg-rose-50 hover:text-rose-500"
-                      aria-label="删除提示词记录"
+                      aria-label="Xoá bản ghi dấu nhắc"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -142,7 +142,7 @@ export function ImageResults({
                 <div className="w-full p-1">
                   {turn.referenceImages.length > 0 ? (
                     <div className="mb-4 flex flex-col items-end">
-                      <div className="mb-3 text-xs font-medium text-stone-500">本轮参考图</div>
+                      <div className="mb-3 text-xs font-medium text-stone-500">Ảnh tham chiếu lần này</div>
                       <div className="flex flex-wrap justify-end gap-3">
                         {turn.referenceImages.map((image, index) => (
                           <div key={`${turn.id}-${image.name}-${index}`} className="flex flex-col items-end gap-2">
@@ -150,11 +150,11 @@ export function ImageResults({
                               type="button"
                               onClick={() => onOpenLightbox(referenceLightboxImages, index)}
                               className="group relative h-24 w-24 overflow-hidden border border-stone-200/80 bg-stone-100/60 text-left transition hover:border-stone-300"
-                              aria-label={`预览参考图 ${image.name || index + 1}`}
+                              aria-label={`Xem trước ảnh tham chiếu ${image.name || index + 1}`}
                             >
                               <img
                                 src={image.dataUrl}
-                                alt={image.name || `参考图 ${index + 1}`}
+                                alt={image.name || `Ảnh tham chiếu ${index + 1}`}
                                 className="absolute inset-0 h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                               />
                             </button>
@@ -165,7 +165,7 @@ export function ImageResults({
                               onClick={() => onContinueEdit(selectedConversation.id, image)}
                             >
                               <Sparkles className="size-4" />
-                              加入编辑
+                              Bắt đầu chỉnh sửa
                             </Button>
                           </div>
                         ))}
@@ -174,10 +174,10 @@ export function ImageResults({
                   ) : null}
 
                   <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[11px] text-stone-500 sm:mb-4 sm:gap-2 sm:text-xs">
-                    <span className="rounded-full bg-stone-100 px-3 py-1">{turn.count} 张</span>
+                    <span className="rounded-full bg-stone-100 px-3 py-1">{turn.count} ảnh</span>
                     <span className="rounded-full bg-stone-100 px-3 py-1">{getTurnStatusLabel(turn.status)}</span>
                     {turn.status === "queued" ? (
-                      <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">等待当前对话中的前序任务完成</span>
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">Chờ các công việc trước đó hoàn thành</span>
                     ) : null}
                   </div>
 
@@ -215,7 +215,7 @@ export function ImageResults({
                             </button>
                             <div className="flex flex-col gap-1 px-0.5 py-1 text-[10px] sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-3 sm:py-3 sm:text-xs">
                               <div className="min-w-0 text-stone-500">
-                                <span>结果 {index + 1}</span>
+                                <span>Kết quả {index + 1}</span>
                                 {imageMeta ? <span className="block text-stone-400 sm:ml-2 sm:inline">{imageMeta}</span> : null}
                               </div>
                               <Button
@@ -225,7 +225,7 @@ export function ImageResults({
                                 onClick={() => onContinueEdit(selectedConversation.id, image)}
                               >
                                 <Sparkles className="size-3 sm:size-4" />
-                                加入编辑
+                                Bắt đầu chỉnh sửa
                               </Button>
                             </div>
                           </div>
@@ -248,13 +248,13 @@ export function ImageResults({
                             )}
                           >
                             <div className="flex h-full min-h-16 flex-col items-center justify-center gap-1.5 px-2 py-2 text-center text-[11px] leading-4 text-rose-600 sm:gap-3 sm:px-6 sm:py-8 sm:text-sm sm:leading-6">
-                              <span className="line-clamp-2 sm:line-clamp-none">{image.error || "生成失败"}</span>
+                              <span className="line-clamp-2 sm:line-clamp-none">{image.error || "Tạo thất bại"}</span>
                               <button
                                 type="button"
                                 onClick={() => void onRetryImage(selectedConversation.id, turn.id, image.id)}
                                 className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-rose-600 shadow-sm transition hover:bg-rose-100 sm:px-3 sm:text-xs"
                               >
-                                重新生成这一张
+                                Tạo lại ảnh này
                               </button>
                             </div>
                           </div>
@@ -282,7 +282,7 @@ export function ImageResults({
                                 <LoaderCircle className="size-4 animate-spin sm:size-5" />
                               )}
                             </div>
-                            <p className="text-[10px] leading-4 sm:text-sm">{turn.status === "queued" ? "排队中" : "处理中"}</p>
+                            <p className="text-[10px] leading-4 sm:text-sm">{turn.status === "queued" ? "Chờ xử lý" : "Đang xử lý"}</p>
                           </div>
                         </div>
                       );
@@ -302,13 +302,13 @@ export function ImageResults({
                       className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 font-medium text-stone-500 transition hover:bg-stone-200 hover:text-stone-900"
                     >
                       <RotateCcw className="size-3" />
-                      全部重新生成
+                      Tạo lại
                     </button>
                     <button
                       type="button"
                       onClick={() => onDeleteResults(selectedConversation.id, turn.id)}
                       className="inline-flex size-6 items-center justify-center rounded-full text-stone-300 transition hover:bg-rose-50 hover:text-rose-500"
-                      aria-label="删除生成结果"
+                      aria-label="Xoá kết quả tạo"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -325,15 +325,15 @@ export function ImageResults({
 
 function getTurnStatusLabel(status: ImageTurnStatus) {
   if (status === "queued") {
-    return "排队中";
+    return "Chờ xử lý";
   }
   if (status === "generating") {
-    return "处理中";
+    return "Đang xử lý";
   }
   if (status === "success") {
-    return "已完成";
+    return "Hoàn thành";
   }
-  return "失败";
+  return "Thất bại";
 }
 
 function formatBase64ImageSize(base64: string) {
