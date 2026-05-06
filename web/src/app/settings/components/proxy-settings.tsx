@@ -102,16 +102,16 @@ export function ProxySettingsCard() {
   };
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
       <CardContent className="space-y-6 p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-stone-100">
-              <Wifi className="size-5 text-stone-600" />
+            <div className="flex size-10 items-center justify-center rounded-xl bg-surface-secondary">
+              <Wifi className="size-5 text-content-secondary" />
             </div>
             <div>
               <h2 className="text-lg font-semibold tracking-tight">Cấu hình Proxy ngược dòng</h2>
-              <p className="text-sm text-stone-500">
+              <p className="text-sm text-content-tertiary">
                 Cấu hình proxy đi ra cho các yêu cầu tới chatgpt.com — phù hợp cho server triển khai trong nước. Sub2API / CPA không bị ảnh hưởng.
               </p>
             </div>
@@ -120,27 +120,27 @@ export function ProxySettingsCard() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-10">
-            <LoaderCircle className="size-5 animate-spin text-stone-400" />
+            <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
           </div>
         ) : (
           <div className="space-y-4">
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
               <input
                 type="checkbox"
-                className="mt-1 size-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900"
+                className="mt-1 size-4 rounded border-border text-content focus:ring-primary-500"
                 checked={formEnabled}
                 onChange={(event) => setFormEnabled(event.target.checked)}
               />
               <div className="space-y-0.5">
-                <div className="text-sm font-medium text-stone-800">Bật Proxy</div>
-                <div className="text-sm text-stone-500">
+                <div className="text-sm font-medium text-content">Bật Proxy</div>
+                <div className="text-sm text-content-tertiary">
                   Sau khi tắt, các yêu cầu chatgpt.com sẽ kết nối trực tiếp. Có hiệu lực ngay sau khi lưu, không cần khởi động lại.
                 </div>
               </div>
             </label>
 
             <div className="space-y-2">
-              <label className="flex items-center gap-1.5 text-sm font-medium text-stone-700">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-content">
                 <PlugZap className="size-3.5" />
                 Địa chỉ Proxy
               </label>
@@ -148,9 +148,9 @@ export function ProxySettingsCard() {
                 value={formUrl}
                 onChange={(event) => setFormUrl(event.target.value)}
                 placeholder="http://user:pass@host:port hoặc socks5://host:port"
-                className="h-11 rounded-xl border-stone-200 bg-white font-mono text-xs"
+                className="h-11 rounded-xl border-border bg-white font-mono text-xs"
               />
-              <div className="text-xs text-stone-400">
+              <div className="text-xs text-content-tertiary">
                 Hỗ trợ <code className="font-mono">http / https / socks4 / socks5 / socks5h</code>.
               </div>
             </div>
@@ -175,7 +175,7 @@ export function ProxySettingsCard() {
 
             <div className="flex items-center gap-2">
               <Button
-                className="h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800"
+                className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
                 onClick={() => void handleSave()}
                 disabled={isSaving || !dirty}
               >
@@ -184,7 +184,7 @@ export function ProxySettingsCard() {
               </Button>
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-stone-200 bg-white px-5 text-stone-700"
+                className="h-10 rounded-xl border-border bg-white px-5 text-content"
                 onClick={() => void handleTest()}
                 disabled={isTesting}
               >

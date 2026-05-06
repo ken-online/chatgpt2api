@@ -76,11 +76,11 @@ const statusMeta: Record<
 };
 
 const metricCards = [
-  { key: "total", label: "Tổng số tài khoản", color: "text-stone-900", icon: UserRound },
+  { key: "total", label: "Tổng số tài khoản", color: "text-content", icon: UserRound },
   { key: "active", label: "Tài khoản bình thường", color: "text-emerald-600", icon: CheckCircle2 },
   { key: "limited", label: "Tài khoản giới hạn tốc độ", color: "text-orange-500", icon: CircleAlert },
   { key: "abnormal", label: "Tài khoản bất thường", color: "text-rose-500", icon: CircleOff },
-  { key: "disabled", label: "Tài khoản vô hiệu hoá", color: "text-stone-500", icon: Ban },
+  { key: "disabled", label: "Tài khoản vô hiệu hoá", color: "text-content-tertiary", icon: Ban },
   { key: "quota", label: "Hạn ngạch còn lại", color: "text-blue-500", icon: RefreshCw },
 ] as const;
 
@@ -353,7 +353,7 @@ function AccountsPageContent() {
     <>
       <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-1">
-          <div className="text-xs font-semibold tracking-[0.18em] text-stone-500 uppercase">
+          <div className="text-xs font-semibold tracking-[0.18em] text-content-tertiary uppercase">
             Account Pool
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Quản lý tài khoản</h1>
@@ -362,7 +362,7 @@ function AccountsPageContent() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-stone-200 bg-white/80 px-4 text-stone-700 hover:bg-white"
+            className="h-10 rounded-xl border-border bg-surface px-4 text-content hover:bg-white"
             onClick={() => void loadAccounts()}
             disabled={isLoading || isRefreshing || isDeleting}
           >
@@ -371,7 +371,7 @@ function AccountsPageContent() {
           </Button>
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-stone-200 bg-white/80 px-4 text-stone-700 hover:bg-white"
+            className="h-10 rounded-xl border-border bg-surface px-4 text-content hover:bg-white"
             onClick={() => void handleRefreshAccounts(accounts.map((item) => item.access_token))}
             disabled={isLoading || isRefreshing || isDeleting || accounts.length === 0}
           >
@@ -388,7 +388,7 @@ function AccountsPageContent() {
           />
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-stone-200 bg-white/80 px-4 text-stone-700 hover:bg-white"
+            className="h-10 rounded-xl border-border bg-surface px-4 text-content hover:bg-white"
             onClick={() => downloadTokens(accounts)}
             disabled={accounts.length === 0}
           >
@@ -408,9 +408,9 @@ function AccountsPageContent() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-stone-700">Trạng thái</label>
+              <label className="text-sm font-medium text-content">Trạng thái</label>
               <Select value={editStatus} onValueChange={(value) => setEditStatus(value as AccountStatus)}>
-                <SelectTrigger className="h-11 rounded-xl border-stone-200 bg-white">
+                <SelectTrigger className="h-11 rounded-xl border-border bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -428,14 +428,14 @@ function AccountsPageContent() {
           <DialogFooter className="pt-2">
             <Button
               variant="secondary"
-              className="h-10 rounded-xl bg-stone-100 px-5 text-stone-700 hover:bg-stone-200"
+              className="h-10 rounded-xl bg-surface-secondary px-5 text-content hover:bg-surface-tertiary"
               onClick={() => setEditingAccount(null)}
               disabled={isUpdating}
             >
               Huỷ
             </Button>
             <Button
-              className="h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800"
+              className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
               onClick={() => void handleUpdateAccount()}
               disabled={isUpdating}
             >
@@ -452,11 +452,11 @@ function AccountsPageContent() {
             const Icon = item.icon;
             const value = summary[item.key];
             return (
-              <Card key={item.key} className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+              <Card key={item.key} className="rounded-2xl border-white/80 bg-surface shadow-sm">
                 <CardContent className="p-4">
                   <div className="mb-4 flex items-start justify-between">
-                    <span className="text-xs font-medium text-stone-400">{item.label}</span>
-                    <Icon className="size-4 text-stone-400" />
+                    <span className="text-xs font-medium text-content-tertiary">{item.label}</span>
+                    <Icon className="size-4 text-content-tertiary" />
                   </div>
                   <div className={cn("text-[1.75rem] font-semibold tracking-tight", item.color)}>
                     <span className={typeof value === "number" ? "" : "text-[1.1rem]"}>
@@ -474,14 +474,14 @@ function AccountsPageContent() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold tracking-tight">Danh sách tài khoản</h2>
-            <Badge variant="secondary" className="rounded-lg bg-stone-200 px-2 py-0.5 text-stone-700">
+            <Badge variant="secondary" className="rounded-lg bg-surface-tertiary px-2 py-0.5 text-content">
               {filteredAccounts.length}
             </Badge>
           </div>
 
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
             <div className="relative min-w-[260px]">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-400" />
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-content-tertiary" />
               <Input
                 value={query}
                 onChange={(event) => {
@@ -489,7 +489,7 @@ function AccountsPageContent() {
                   setPage(1);
                 }}
                 placeholder="Tìm theo email"
-                className="h-10 rounded-xl border-stone-200 bg-white/85 pl-10"
+                className="h-10 rounded-xl border-border bg-white/85 pl-10"
               />
             </div>
             <Select
@@ -499,7 +499,7 @@ function AccountsPageContent() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-stone-200 bg-white/85 lg:w-[150px]">
+              <SelectTrigger className="h-10 w-full rounded-xl border-border bg-white/85 lg:w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -517,7 +517,7 @@ function AccountsPageContent() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-10 w-full rounded-xl border-stone-200 bg-white/85 lg:w-[150px]">
+              <SelectTrigger className="h-10 w-full rounded-xl border-border bg-white/85 lg:w-[150px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -532,14 +532,14 @@ function AccountsPageContent() {
         </div>
 
         {isLoading && accounts.length === 0 ? (
-          <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+          <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
             <CardContent className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
-              <div className="rounded-xl bg-stone-100 p-3 text-stone-500">
+              <div className="rounded-xl bg-surface-secondary p-3 text-content-tertiary">
                 <LoaderCircle className="size-5 animate-spin" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium text-stone-700">Đang tải tài khoản</p>
-                <p className="text-sm text-stone-500">Đồng bộ danh sách và trạng thái tài khoản từ backend.</p>
+                <p className="text-sm font-medium text-content">Đang tải tài khoản</p>
+                <p className="text-sm text-content-tertiary">Đồng bộ danh sách và trạng thái tài khoản từ backend.</p>
               </div>
             </CardContent>
           </Card>
@@ -547,16 +547,16 @@ function AccountsPageContent() {
 
         <Card
           className={cn(
-            "overflow-hidden rounded-2xl border-white/80 bg-white/90 shadow-sm",
+            "overflow-hidden rounded-2xl border-white/80 bg-surface shadow-sm",
             isLoading && accounts.length === 0 ? "hidden" : "",
           )}
         >
           <CardContent className="space-y-0 p-0">
-            <div className="flex flex-col gap-3 border-b border-stone-100 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-stone-500">
+            <div className="flex flex-col gap-3 border-b border-border px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-content-tertiary">
                 <Button
                   variant="ghost"
-                  className="h-8 rounded-lg px-3 text-stone-500 hover:bg-stone-100"
+                  className="h-8 rounded-lg px-3 text-content-tertiary hover:bg-surface-secondary"
                   onClick={() => void handleRefreshAccounts(selectedTokens)}
                   disabled={selectedTokens.length === 0 || isRefreshing}
                 >
@@ -582,7 +582,7 @@ function AccountsPageContent() {
                   Xoá mục đã chọn
                 </Button>
                 {selectedIds.length > 0 ? (
-                  <span className="rounded-lg bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">
+                  <span className="rounded-lg bg-surface-secondary px-2.5 py-1 text-xs font-medium text-content-secondary">
                     Đã chọn {selectedIds.length} mục
                   </span>
                 ) : null}
@@ -591,7 +591,7 @@ function AccountsPageContent() {
 
             <div className="overflow-x-auto">
               <table className="w-full min-w-[920px] text-left">
-                <thead className="border-b border-stone-100 text-[11px] text-stone-400 uppercase tracking-[0.18em]">
+                <thead className="border-b border-border text-[11px] text-content-tertiary uppercase tracking-[0.18em]">
                   <tr>
                     <th className="w-12 px-4 py-3">
                       <Checkbox
@@ -618,7 +618,7 @@ function AccountsPageContent() {
                     return (
                       <tr
                         key={account.access_token}
-                        className="border-b border-stone-100/80 text-sm text-stone-600 transition-colors hover:bg-stone-50/70"
+                        className="border-b border-border/80 text-sm text-content-secondary transition-colors hover:bg-surface-secondary/70"
                       >
                         <td className="px-4 py-3">
                           <Checkbox
@@ -634,12 +634,12 @@ function AccountsPageContent() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium tracking-tight text-stone-700">
+                            <span className="font-medium tracking-tight text-content">
                               {maskToken(account.access_token)}
                             </span>
                             <button
                               type="button"
-                              className="rounded-lg p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                              className="rounded-lg p-1 text-content-tertiary transition hover:bg-surface-secondary hover:text-content"
                               onClick={() => {
                                 void navigator.clipboard.writeText(account.access_token);
                                 toast.success("Đã sao chép token");
@@ -650,7 +650,7 @@ function AccountsPageContent() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="secondary" className="rounded-md bg-stone-100 text-stone-700">
+                          <Badge variant="secondary" className="rounded-md bg-surface-secondary text-content">
                             {displayAccountType(account)}
                           </Badge>
                         </td>
@@ -664,31 +664,31 @@ function AccountsPageContent() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-xs leading-5 text-stone-500">{account.email ?? "—"}</div>
+                          <div className="text-xs leading-5 text-content-tertiary">{account.email ?? "—"}</div>
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="info" className="rounded-md">
                             {formatQuota(account)}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-xs leading-5 text-stone-500">
+                        <td className="px-4 py-3 text-xs leading-5 text-content-tertiary">
                           {(() => {
                             const restore = formatRestoreAt(account.restore_at);
                             return (
                               <div className="space-y-0.5">
-                                {restore.relative ? <div className="font-medium text-stone-700">{restore.relative}</div> : null}
+                                {restore.relative ? <div className="font-medium text-content">{restore.relative}</div> : null}
                                 <div>{restore.absolute}</div>
                               </div>
                             );
                           })()}
                         </td>
-                        <td className="px-4 py-3 text-stone-500">{account.success}</td>
-                        <td className="px-4 py-3 text-stone-500">{account.fail}</td>
+                        <td className="px-4 py-3 text-content-tertiary">{account.success}</td>
+                        <td className="px-4 py-3 text-content-tertiary">{account.fail}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 text-stone-400">
+                          <div className="flex items-center gap-1 text-content-tertiary">
                             <button
                               type="button"
-                              className="rounded-lg p-2 transition hover:bg-stone-100 hover:text-stone-700"
+                              className="rounded-lg p-2 transition hover:bg-surface-secondary hover:text-content"
                               onClick={() => openEditDialog(account)}
                               disabled={isUpdating}
                             >
@@ -696,7 +696,7 @@ function AccountsPageContent() {
                             </button>
                             <button
                               type="button"
-                              className="rounded-lg p-2 transition hover:bg-stone-100 hover:text-stone-700"
+                              className="rounded-lg p-2 transition hover:bg-surface-secondary hover:text-content"
                               onClick={() => void handleRefreshAccounts([account.access_token])}
                               disabled={isRefreshing}
                             >
@@ -720,26 +720,26 @@ function AccountsPageContent() {
 
               {!isLoading && currentRows.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
-                  <div className="rounded-xl bg-stone-100 p-3 text-stone-500">
+                  <div className="rounded-xl bg-surface-secondary p-3 text-content-tertiary">
                     <Search className="size-5" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-stone-700">Không có tài khoản phù hợp</p>
-                    <p className="text-sm text-stone-500">Điều chỉnh điều kiện lọc hoặc từ khoá tìm kiếm rồi thử lại.</p>
+                    <p className="text-sm font-medium text-content">Không có tài khoản phù hợp</p>
+                    <p className="text-sm text-content-tertiary">Điều chỉnh điều kiện lọc hoặc từ khoá tìm kiếm rồi thử lại.</p>
                   </div>
                 </div>
               ) : null}
             </div>
 
-            <div className="border-t border-stone-100 px-4 py-4">
+            <div className="border-t border-border px-4 py-4">
               <div className="flex items-center justify-center gap-3 overflow-x-auto whitespace-nowrap">
-                <div className="shrink-0 text-sm text-stone-500">
+                <div className="shrink-0 text-sm text-content-tertiary">
                 Hiển thị {filteredAccounts.length === 0 ? 0 : startIndex + 1} -{" "}
                 {Math.min(startIndex + Number(pageSize), filteredAccounts.length)} trong tổng số{" "}
                 {filteredAccounts.length}
                 </div>
 
-                <span className="shrink-0 text-sm leading-none text-stone-500">
+                <span className="shrink-0 text-sm leading-none text-content-tertiary">
                   Trang {safePage} / {pageCount}
                 </span>
                 <Select
@@ -749,7 +749,7 @@ function AccountsPageContent() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="h-10 w-[108px] shrink-0 rounded-lg border-stone-200 bg-white text-sm leading-none">
+                  <SelectTrigger className="h-10 w-[108px] shrink-0 rounded-lg border-border bg-white text-sm leading-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -762,7 +762,7 @@ function AccountsPageContent() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-10 shrink-0 rounded-lg border-stone-200 bg-white"
+                  className="size-10 shrink-0 rounded-lg border-border bg-white"
                   disabled={safePage <= 1}
                   onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 >
@@ -770,7 +770,7 @@ function AccountsPageContent() {
                 </Button>
                 {paginationItems.map((item, index) =>
                   item === "..." ? (
-                    <span key={`ellipsis-${index}`} className="px-1 text-sm text-stone-400">
+                    <span key={`ellipsis-${index}`} className="px-1 text-sm text-content-tertiary">
                       ...
                     </span>
                   ) : (
@@ -780,8 +780,8 @@ function AccountsPageContent() {
                       className={cn(
                         "h-10 min-w-10 shrink-0 rounded-lg px-3",
                         item === safePage
-                          ? "bg-stone-950 text-white hover:bg-stone-800"
-                          : "border-stone-200 bg-white text-stone-700",
+                          ? "bg-primary-600 text-white hover:bg-primary-700"
+                          : "border-border bg-white text-content",
                       )}
                       onClick={() => setPage(item)}
                     >
@@ -792,7 +792,7 @@ function AccountsPageContent() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-10 shrink-0 rounded-lg border-stone-200 bg-white"
+                  className="size-10 shrink-0 rounded-lg border-border bg-white"
                   disabled={safePage >= pageCount}
                   onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
                 >
@@ -813,7 +813,7 @@ export default function AccountsPage() {
   if (isCheckingAuth || !session || session.role !== "admin") {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <LoaderCircle className="size-5 animate-spin text-stone-400" />
+        <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
       </div>
     );
   }

@@ -19,21 +19,21 @@ export function CPAPoolsCard() {
   const browseFiles = useSettingsStore((state) => state.browseFiles);
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
       <CardContent className="space-y-6 p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-stone-100">
-              <ServerCog className="size-5 text-stone-600" />
+            <div className="flex size-10 items-center justify-center rounded-xl bg-surface-secondary">
+              <ServerCog className="size-5 text-content-secondary" />
             </div>
             <div>
               <h2 className="text-lg font-semibold tracking-tight">Quản lý kết nối CPA</h2>
-              <p className="text-sm text-stone-500">Trước tiên hãy định cấu hình kết nối, sau đó truy vấn tài khoản từ xa khi cần thiết và chọn nhập vào nhóm địa phương.</p>
+              <p className="text-sm text-content-tertiary">Trước tiên hãy định cấu hình kết nối, sau đó truy vấn tài khoản từ xa khi cần thiết và chọn nhập vào nhóm địa phương.</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {pools.length > 0 ? <Badge className="rounded-md px-2.5 py-1">{pools.length} kết nối</Badge> : null}
-            <Button className="h-9 rounded-xl bg-stone-950 px-4 text-white hover:bg-stone-800" onClick={openAddDialog}>
+            <Button className="h-9 rounded-xl bg-primary-600 px-4 text-white hover:bg-primary-700" onClick={openAddDialog}>
               <Plus className="size-4" />
               Thêm kết nối
             </Button>
@@ -42,14 +42,14 @@ export function CPAPoolsCard() {
 
         {isLoadingPools ? (
           <div className="flex items-center justify-center py-10">
-            <LoaderCircle className="size-5 animate-spin text-stone-400" />
+            <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
           </div>
         ) : pools.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl bg-stone-50 px-6 py-10 text-center">
-            <ServerCog className="size-8 text-stone-300" />
+          <div className="flex flex-col items-center justify-center gap-3 rounded-xl bg-surface-secondary px-6 py-10 text-center">
+            <ServerCog className="size-8 text-content-tertiary" />
             <div className="space-y-1">
-              <p className="text-sm font-medium text-stone-600">Không có kết nối CPA nào</p>
-              <p className="text-sm text-stone-400">Nhấp "Thêm kết nối" để lưu thông tin CLIProxyAPI của bạn.</p>
+              <p className="text-sm font-medium text-content-secondary">Không có kết nối CPA nào</p>
+              <p className="text-sm text-content-tertiary">Nhấp "Thêm kết nối" để lưu thông tin CLIProxyAPI của bạn.</p>
             </div>
           </div>
         ) : (
@@ -62,16 +62,16 @@ export function CPAPoolsCard() {
                 : 0;
 
               return (
-                <div key={pool.id} className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3">
+                <div key={pool.id} className="flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-stone-800">{pool.name || pool.base_url}</div>
-                      <div className="truncate text-xs text-stone-400">{pool.base_url}</div>
+                      <div className="text-sm font-medium text-content">{pool.name || pool.base_url}</div>
+                      <div className="truncate text-xs text-content-tertiary">{pool.base_url}</div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
-                        className="rounded-lg p-2 text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                        className="rounded-lg p-2 text-content-tertiary transition hover:bg-surface-secondary hover:text-content"
                         onClick={() => openEditDialog(pool)}
                         disabled={isBusy}
                         title="Chỉnh sửa"
@@ -80,7 +80,7 @@ export function CPAPoolsCard() {
                       </button>
                       <button
                         type="button"
-                        className="rounded-lg p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-500"
+                        className="rounded-lg p-2 text-content-tertiary transition hover:bg-rose-50 hover:text-rose-500"
                         onClick={() => void deletePool(pool)}
                         disabled={isBusy}
                         title="Xoá"
@@ -97,7 +97,7 @@ export function CPAPoolsCard() {
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
-                      className="h-8 rounded-lg border-stone-200 bg-white px-3 text-xs text-stone-600"
+                      className="h-8 rounded-lg border-border bg-white px-3 text-xs text-content-secondary"
                       onClick={() => void browseFiles(pool)}
                       disabled={isBusy}
                     >
@@ -111,15 +111,15 @@ export function CPAPoolsCard() {
                   </div>
 
                   {importJob ? (
-                    <div className="space-y-2 rounded-xl bg-stone-50 px-3 py-3">
-                      <div className="text-xs font-medium tracking-[0.16em] text-stone-400 uppercase">Tác vụ nhập khẩu</div>
-                      <div className="rounded-lg border border-stone-200 bg-white px-3 py-3">
+                    <div className="space-y-2 rounded-xl bg-surface-secondary px-3 py-3">
+                      <div className="text-xs font-medium tracking-[0.16em] text-content-tertiary uppercase">Tác vụ nhập khẩu</div>
+                      <div className="rounded-lg border border-border bg-white px-3 py-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-sm font-medium text-stone-700">
+                            <div className="text-sm font-medium text-content">
                               Trạng thái {importJob.status}, đã xử lý {importJob.completed}/{importJob.total}
                             </div>
-                            <div className="truncate text-xs text-stone-400">
+                            <div className="truncate text-xs text-content-tertiary">
                               Tác vụ {importJob.job_id.slice(0, 8)} · {importJob.created_at}
                             </div>
                           </div>
@@ -136,10 +136,10 @@ export function CPAPoolsCard() {
                             {progress}%
                           </Badge>
                         </div>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-200">
-                          <div className="h-full rounded-full bg-stone-900 transition-all" style={{ width: `${progress}%` }} />
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-tertiary">
+                          <div className="h-full rounded-full bg-primary-600 transition-all" style={{ width: `${progress}%` }} />
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-stone-500">
+                        <div className="mt-2 flex flex-wrap gap-2 text-xs text-content-tertiary">
                           <span>Mới {importJob.added}</span>
                           <span>Bỏ qua {importJob.skipped}</span>
                           <span>Làm tươi {importJob.refreshed}</span>
@@ -154,8 +154,8 @@ export function CPAPoolsCard() {
           </div>
         )}
 
-        <div className="rounded-xl bg-stone-50 px-4 py-3 text-sm leading-6 text-stone-500">
-          <p className="font-medium text-stone-600">Hướng dẫn sử dụng</p>
+        <div className="rounded-xl bg-surface-secondary px-4 py-3 text-sm leading-6 text-content-tertiary">
+          <p className="font-medium text-content-secondary">Hướng dẫn sử dụng</p>
           <ul className="mt-1 list-inside list-disc space-y-0.5">
             <li>Khi vào trang, trước tiên hãy đọc các kết nối CPA đã được định cấu hình trong hệ thống.</li>
             <li>Sau khi nhấp vào "Đồng bộ" của một kết nối, nó sẽ đầu tiên đọc danh sách tài khoản từ xa và hiển thị cho giao diện người dùng để lựa chọn.</li>

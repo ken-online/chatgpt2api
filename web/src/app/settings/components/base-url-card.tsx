@@ -19,16 +19,16 @@ export function BaseUrlCard() {
   const baseUrl = String(config?.base_url || "");
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
       <CardContent className="space-y-6 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-stone-100">
-              <Globe className="size-5 text-stone-600" />
+            <div className="flex size-10 items-center justify-center rounded-xl bg-surface-secondary">
+              <Globe className="size-5 text-content-secondary" />
             </div>
             <div>
               <h2 className="text-lg font-semibold tracking-tight">Địa chỉ cơ sở</h2>
-              <p className="text-sm text-stone-500">Đặt giá trị cấu hình cục bộ của `CHATGPT2API_BASE_URL`, có hiệu lực ngay sau khi lưu.</p>
+              <p className="text-sm text-content-tertiary">Đặt giá trị cấu hình cục bộ của `CHATGPT2API_BASE_URL`, có hiệu lực ngay sau khi lưu.</p>
             </div>
           </div>
           <Badge variant={baseUrl.trim() ? "success" : "secondary"} className="w-fit rounded-md px-2.5 py-1">
@@ -38,24 +38,24 @@ export function BaseUrlCard() {
 
         {isLoadingConfig ? (
           <div className="flex items-center justify-center py-10">
-            <LoaderCircle className="size-5 animate-spin text-stone-400" />
+            <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
           </div>
         ) : (
           <>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-stone-700">Base URL</label>
+              <label className="text-sm font-medium text-content">Base URL</label>
               <Input
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
                 placeholder="https://example.com"
-                className="h-11 rounded-xl border-stone-200 bg-white"
+                className="h-11 rounded-xl border-border bg-white"
               />
-              <p className="text-sm text-stone-500">Để trống sẽ sử dụng biến môi trường hoặc giá trị mặc định. Khoảng trắng ở đầu và cuối sẽ được xóa tự động khi lưu.</p>
+              <p className="text-sm text-content-tertiary">Để trống sẽ sử dụng biến môi trường hoặc giá trị mặc định. Khoảng trắng ở đầu và cuối sẽ được xóa tự động khi lưu.</p>
             </div>
 
             <div className="flex justify-end">
               <Button
-                className="h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800"
+                className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
                 onClick={() => void saveConfig()}
                 disabled={isSavingConfig}
               >

@@ -45,28 +45,30 @@ export default function LoginPage() {
 
   if (isCheckingAuth) {
     return (
-      <div className="grid min-h-[calc(100vh-1rem)] w-full place-items-center px-4 py-6">
-        <LoaderCircle className="size-5 animate-spin text-stone-400" />
+      <div className="grid min-h-screen w-full place-items-center bg-bg-app px-4">
+        <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
       </div>
     );
   }
 
   return (
-    <div className="grid min-h-[calc(100vh-1rem)] w-full place-items-center px-4 py-6">
-      <Card className="w-full max-w-[505px] rounded-[30px] border-white/80 bg-white/95 shadow-[0_28px_90px_rgba(28,25,23,0.10)]">
-        <CardContent className="space-y-7 p-6 sm:p-8">
+    <div className="grid min-h-screen w-full place-items-center bg-bg-app px-4">
+      <Card className="w-full max-w-[460px]">
+        <CardContent className="space-y-7 p-8">
           <div className="space-y-4 text-center">
-            <div className="mx-auto inline-flex size-14 items-center justify-center rounded-[18px] bg-stone-950 text-white shadow-sm">
+            <div className="mx-auto inline-flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-md">
               <LockKeyhole className="size-5" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-stone-950">Chào mừng trở lại</h1>
-              <p className="text-sm leading-6 text-stone-500">Nhập khóa bí mật để tiếp tục sử dụng quản lý tài khoản và tính năng tạo ảnh.</p>
+              <h1 className="text-2xl font-bold tracking-tight text-content">Chào mừng trở lại</h1>
+              <p className="text-sm leading-6 text-content-tertiary">
+                Nhập khóa bí mật để tiếp tục sử dụng quản lý tài khoản và tính năng tạo ảnh.
+              </p>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label htmlFor="auth-key" className="block text-sm font-medium text-stone-700">
+          <div className="space-y-2">
+            <label htmlFor="auth-key" className="block text-sm font-medium text-content">
               Khóa bí mật
             </label>
             <Input
@@ -80,12 +82,12 @@ export default function LoginPage() {
                 }
               }}
               placeholder="Nhập khóa bí mật"
-              className="h-13 rounded-2xl border-stone-200 bg-white px-4"
             />
           </div>
 
           <Button
-            className="h-13 w-full rounded-2xl bg-stone-950 text-white hover:bg-stone-800"
+            className="w-full"
+            size="lg"
             onClick={() => void handleLogin()}
             disabled={isSubmitting}
           >
