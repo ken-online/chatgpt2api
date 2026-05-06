@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
+import { AppShell } from "@/components/app-shell/app-shell";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -31,7 +32,7 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning className={inter.variable}>
       <body className="antialiased font-sans">
         <Toaster position="top-center" richColors offset={48} />
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
