@@ -1,0 +1,9 @@
+{
+  "_comment": "Các string CJK PHẢI giữ nguyên (enum/protocol value backend đang dùng). Đừng dịch sang tiếng Việt - sẽ vỡ match với backend Python.",
+  "keep": [
+    "正常",
+    "限流",
+    "异常",
+    "禁用"
+  ]
+}
