@@ -29,7 +29,7 @@ def check_request(text: str) -> None:
         return
     for word in config.sensitive_words:
         if word in text:
-            raise HTTPException(status_code=400, detail={"error": "检测到敏感词，拒绝本次任务"})
+            raise HTTPException(status_code=400, detail={"error": "Phát hiện từ khoá nhạy cảm, tác vụ bị từ chối"})
     review = config.ai_review
     if not review.get("enabled"):
         return
@@ -53,4 +53,4 @@ def check_request(text: str) -> None:
         raise HTTPException(status_code=502, detail={"error": f"ai review failed: {exc}"}) from exc
     if result.startswith(("allow", "pass", "true", "yes", "通过", "允许", "安全")):
         return
-    raise HTTPException(status_code=400, detail={"error": "AI 审核未通过，拒绝本次任务"})
+    raise HTTPException(status_code=400, detail={"error": "Kiểm duyệt AI không thông qua, tác vụ bị từ chối"})
