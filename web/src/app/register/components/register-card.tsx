@@ -32,8 +32,8 @@ export function RegisterCard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-stone-200 bg-white/80 p-10">
-        <LoaderCircle className="size-5 animate-spin text-stone-400" />
+      <div className="flex items-center justify-center rounded-xl border border-border bg-surface p-10">
+        <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
       </div>
     );
   }
@@ -58,18 +58,18 @@ export function RegisterCard() {
   };
 
   return (
-    <div className="grid h-[calc(100vh-132px)] min-h-[640px] items-stretch gap-0 overflow-hidden rounded-xl border border-stone-200 bg-white/70 xl:grid-cols-2">
-      <section className="space-y-4 overflow-y-auto border-b border-stone-200 p-4 xl:border-r xl:border-b-0">
+    <div className="grid h-[calc(100vh-132px)] min-h-[640px] items-stretch gap-0 overflow-hidden rounded-xl border border-border bg-white/70 xl:grid-cols-2">
+      <section className="space-y-4 overflow-y-auto border-b border-border p-4 xl:border-r xl:border-b-0">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-md bg-stone-100">
-                <UserPlus className="size-5 text-stone-600" />
+              <div className="flex size-9 items-center justify-center rounded-md bg-surface-secondary">
+                <UserPlus className="size-5 text-content-secondary" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">Cấu hình đăng ký</h2>
               </div>
             </div>
-            <Button className="h-9 rounded-xl bg-stone-950 px-4 text-white hover:bg-stone-800" onClick={() => void save()} disabled={isSaving || config.enabled}>
+            <Button className="h-9 rounded-xl bg-primary-600 px-4 text-white hover:bg-primary-700" onClick={() => void save()} disabled={isSaving || config.enabled}>
               {isSaving ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
               Lưu cấu hình
             </Button>
@@ -77,9 +77,9 @@ export function RegisterCard() {
 
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Chế độ đăng ký</label>
+              <label className="text-sm text-content">Chế độ đăng ký</label>
               <Select value={config.mode || "total"} onValueChange={(value) => setMode(value as "total" | "quota" | "available")} disabled={config.enabled}>
-                <SelectTrigger className="h-10 rounded-xl border-stone-200 bg-white">
+                <SelectTrigger className="h-10 rounded-xl border-border bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -90,38 +90,38 @@ export function RegisterCard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Tổng số đăng ký</label>
-              <Input value={String(config.total)} onChange={(event) => setTotal(event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled || config.mode !== "total"} />
+              <label className="text-sm text-content">Tổng số đăng ký</label>
+              <Input value={String(config.total)} onChange={(event) => setTotal(event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled || config.mode !== "total"} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Số lượng luồng</label>
-              <Input value={String(config.threads)} onChange={(event) => setThreads(event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+              <label className="text-sm text-content">Số lượng luồng</label>
+              <Input value={String(config.threads)} onChange={(event) => setThreads(event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Proxy đăng ký</label>
-              <Input value={config.proxy} onChange={(event) => setProxy(event.target.value)} placeholder="http://127.0.0.1:7890" className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+              <label className="text-sm text-content">Proxy đăng ký</label>
+              <Input value={config.proxy} onChange={(event) => setProxy(event.target.value)} placeholder="http://127.0.0.1:7890" className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Hạn mức mục tiêu</label>
-              <Input value={String(config.target_quota || "")} onChange={(event) => setTargetQuota(event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled || config.mode !== "quota"} />
+              <label className="text-sm text-content">Hạn mức mục tiêu</label>
+              <Input value={String(config.target_quota || "")} onChange={(event) => setTargetQuota(event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled || config.mode !== "quota"} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Tài khoản mục tiêu có sẵn</label>
-              <Input value={String(config.target_available || "")} onChange={(event) => setTargetAvailable(event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled || config.mode !== "available"} />
+              <label className="text-sm text-content">Tài khoản mục tiêu có sẵn</label>
+              <Input value={String(config.target_available || "")} onChange={(event) => setTargetAvailable(event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled || config.mode !== "available"} />
             </div>
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Khoảng thời gian kiểm tra (giây)</label>
-              <Input value={String(config.check_interval || "")} onChange={(event) => setCheckInterval(event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled || config.mode === "total"} />
+              <label className="text-sm text-content">Khoảng thời gian kiểm tra (giây)</label>
+              <Input value={String(config.check_interval || "")} onChange={(event) => setCheckInterval(event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled || config.mode === "total"} />
             </div>
           </div>
 
-          <div className="space-y-3 border-t border-stone-200 pt-3">
+          <div className="space-y-3 border-t border-border pt-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-stone-800">Cấu hình Email</h3>
-                <p className="mt-1 text-xs text-stone-500">Có thể cấu hình nhiều provider, xen kẽ theo thứ tự bật.</p>
+                <h3 className="text-sm font-semibold text-content">Cấu hình Email</h3>
+                <p className="mt-1 text-xs text-content-tertiary">Có thể cấu hình nhiều provider, xen kẽ theo thứ tự bật.</p>
               </div>
-              <Button type="button" variant="outline" className="h-9 rounded-xl border-stone-200 bg-white px-3 text-stone-700" onClick={addProvider} disabled={config.enabled}>
+              <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-white px-3 text-content" onClick={addProvider} disabled={config.enabled}>
                 <Plus className="size-4" />
                 Thêm
               </Button>
@@ -129,16 +129,16 @@ export function RegisterCard() {
 
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <label className="text-sm text-stone-700">Hết thời gian chờ yêu cầu</label>
-                <Input value={String(config.mail.request_timeout || "")} onChange={(event) => setMailField("request_timeout", event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                <label className="text-sm text-content">Hết thời gian chờ yêu cầu</label>
+                <Input value={String(config.mail.request_timeout || "")} onChange={(event) => setMailField("request_timeout", event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-stone-700">Hết thời gian chờ mã xác minh</label>
-                <Input value={String(config.mail.wait_timeout || "")} onChange={(event) => setMailField("wait_timeout", event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                <label className="text-sm text-content">Hết thời gian chờ mã xác minh</label>
+                <Input value={String(config.mail.wait_timeout || "")} onChange={(event) => setMailField("wait_timeout", event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-stone-700">Khoảng thời gian bỏ phiếu</label>
-                <Input value={String(config.mail.wait_interval || "")} onChange={(event) => setMailField("wait_interval", event.target.value)} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                <label className="text-sm text-content">Khoảng thời gian bỏ phiếu</label>
+                <Input value={String(config.mail.wait_interval || "")} onChange={(event) => setMailField("wait_interval", event.target.value)} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
               </div>
             </div>
 
@@ -147,22 +147,22 @@ export function RegisterCard() {
                 const type = String(provider.type || "tempmail_lol");
                 const domains = Array.isArray(provider.domain) ? provider.domain.map(String).join("\n") : "";
                 return (
-                  <div key={index} className="space-y-3 border-t border-stone-200 pt-3 first:border-t-0 first:pt-0">
+                  <div key={index} className="space-y-3 border-t border-border pt-3 first:border-t-0 first:pt-0">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="flex items-center gap-3 text-sm text-stone-700">
+                      <label className="flex items-center gap-3 text-sm text-content">
                         <Checkbox checked={Boolean(provider.enable)} onCheckedChange={(checked) => updateProvider(index, { enable: Boolean(checked) })} disabled={config.enabled} />
                         Bật
                       </label>
-                      <button type="button" className="rounded-lg p-2 text-stone-400 transition hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50" onClick={() => deleteProvider(index)} disabled={config.enabled || providers.length <= 1} title="Xóa provider">
+                      <button type="button" className="rounded-lg p-2 text-content-tertiary transition hover:bg-rose-50 hover:text-rose-500 disabled:opacity-50" onClick={() => deleteProvider(index)} disabled={config.enabled || providers.length <= 1} title="Xóa provider">
                         <Trash2 className="size-4" />
                       </button>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
-                        <label className="text-sm text-stone-700">Loại</label>
+                        <label className="text-sm text-content">Loại</label>
                         <Select value={type} onValueChange={(value) => updateProviderType(index, value)} disabled={config.enabled}>
-                          <SelectTrigger className="h-10 rounded-xl border-stone-200 bg-white">
+                          <SelectTrigger className="h-10 rounded-xl border-border bg-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -179,42 +179,42 @@ export function RegisterCard() {
                       {type === "cloudflare_temp_email" || type === "moemail" || type === "inbucket" || type === "yyds_mail" ? (
                         <>
                           <div className="space-y-2">
-                            <label className="text-sm text-stone-700">API Base URL</label>
-                            <Input value={String(provider.api_base || "")} onChange={(event) => updateProvider(index, { api_base: event.target.value })} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                            <label className="text-sm text-content">API Base URL</label>
+                            <Input value={String(provider.api_base || "")} onChange={(event) => updateProvider(index, { api_base: event.target.value })} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
                           </div>
                           {type === "cloudflare_temp_email" ? (
                             <div className="space-y-2">
-                              <label className="text-sm text-stone-700">Mật khẩu Admin</label>
-                              <Input value={String(provider.admin_password || "")} onChange={(event) => updateProvider(index, { admin_password: event.target.value })} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                              <label className="text-sm text-content">Mật khẩu Admin</label>
+                              <Input value={String(provider.admin_password || "")} onChange={(event) => updateProvider(index, { admin_password: event.target.value })} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
                             </div>
                           ) : null}
                         </>
                       ) : null}
                       {type === "inbucket" ? (
-                        <label className="flex items-center gap-3 pt-8 text-sm text-stone-700">
+                        <label className="flex items-center gap-3 pt-8 text-sm text-content">
                           <Checkbox checked={Boolean(provider.random_subdomain ?? true)} onCheckedChange={(checked) => updateProvider(index, { random_subdomain: Boolean(checked) })} disabled={config.enabled} />
                           Bật tên miền phụ ngẫu nhiên
                         </label>
                       ) : null}
                       {type === "tempmail_lol" || type === "moemail" || type === "duckmail" || type === "gptmail" || type === "yyds_mail" ? (
                         <div className="space-y-2">
-                          <label className="text-sm text-stone-700">Khóa API</label>
-                          <Input value={String(provider.api_key || "")} onChange={(event) => updateProvider(index, { api_key: event.target.value })} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                          <label className="text-sm text-content">Khóa API</label>
+                          <Input value={String(provider.api_key || "")} onChange={(event) => updateProvider(index, { api_key: event.target.value })} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
                         </div>
                       ) : null}
                       {type === "duckmail" || type === "gptmail" ? (
                         <div className="space-y-2">
-                          <label className="text-sm text-stone-700">Tên miền mặc định</label>
-                          <Input value={String(provider.default_domain || "")} onChange={(event) => updateProvider(index, { default_domain: event.target.value })} placeholder={type === "duckmail" ? "duckmail.sbs" : ""} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                          <label className="text-sm text-content">Tên miền mặc định</label>
+                          <Input value={String(provider.default_domain || "")} onChange={(event) => updateProvider(index, { default_domain: event.target.value })} placeholder={type === "duckmail" ? "duckmail.sbs" : ""} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
                         </div>
                       ) : null}
                       {type === "yyds_mail" ? (
                         <>
                           <div className="space-y-2">
-                            <label className="text-sm text-stone-700">Tên miền phụ</label>
-                            <Input value={String(provider.subdomain || "")} onChange={(event) => updateProvider(index, { subdomain: event.target.value })} className="h-10 rounded-xl border-stone-200 bg-white" disabled={config.enabled} />
+                            <label className="text-sm text-content">Tên miền phụ</label>
+                            <Input value={String(provider.subdomain || "")} onChange={(event) => updateProvider(index, { subdomain: event.target.value })} className="h-10 rounded-xl border-border bg-white" disabled={config.enabled} />
                           </div>
-                          <label className="flex items-center gap-3 pt-8 text-sm text-stone-700">
+                          <label className="flex items-center gap-3 pt-8 text-sm text-content">
                             <Checkbox checked={Boolean(provider.wildcard)} onCheckedChange={(checked) => updateProvider(index, { wildcard: Boolean(checked) })} disabled={config.enabled} />
                             Wildcard
                           </label>
@@ -224,8 +224,8 @@ export function RegisterCard() {
 
                     {type === "tempmail_lol" || type === "cloudflare_temp_email" || type === "moemail" || type === "inbucket" || type === "yyds_mail" ? (
                       <div className="space-y-2">
-                        <label className="text-sm text-stone-700">{type === "inbucket" ? "Danh sách tên miền cơ sở" : "Tên miền"}</label>
-                        <Textarea value={domains} onChange={(event) => updateProvider(index, { domain: event.target.value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean) })} placeholder={type === "inbucket" ? "Một tên miền cơ sở trên mỗi dòng, hệ thống sẽ tự động tạo tên miền phụ ngẫu nhiên" : type === "moemail" ? "Một tên miền trên mỗi dòng" : "Một tên miền trên mỗi dòng, để trống sẽ sử dụng tên miền mặc định của dịch vụ"} className="min-h-20 rounded-xl border-stone-200 bg-white font-mono text-xs" disabled={config.enabled} />
+                        <label className="text-sm text-content">{type === "inbucket" ? "Danh sách tên miền cơ sở" : "Tên miền"}</label>
+                        <Textarea value={domains} onChange={(event) => updateProvider(index, { domain: event.target.value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean) })} placeholder={type === "inbucket" ? "Một tên miền cơ sở trên mỗi dòng, hệ thống sẽ tự động tạo tên miền phụ ngẫu nhiên" : type === "moemail" ? "Một tên miền trên mỗi dòng" : "Một tên miền trên mỗi dòng, để trống sẽ sử dụng tên miền mặc định của dịch vụ"} className="min-h-20 rounded-xl border-border bg-white font-mono text-xs" disabled={config.enabled} />
                       </div>
                     ) : null}
                   </div>
@@ -241,7 +241,7 @@ export function RegisterCard() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">Kết quả chạy</h2>
-                <p className="mt-1 text-sm text-stone-500">SSE đẩy trạng thái hiện tại theo thời gian thực.</p>
+                <p className="mt-1 text-sm text-content-tertiary">SSE đẩy trạng thái hiện tại theo thời gian thực.</p>
               </div>
               <Badge variant={config.enabled ? "success" : "secondary"} className="rounded-md">
                 {config.enabled ? "Đang chạy" : "Đã dừng"}
@@ -258,22 +258,22 @@ export function RegisterCard() {
                 ["Hạn mức hiện tại", stats.current_quota || 0],
                 ["Tài khoản bình thường", stats.current_available || 0],
               ].map(([label, value]) => (
-                <div key={label} className="border border-stone-200 bg-white/70 px-3 py-2">
-                  <div className="text-xs text-stone-400">{label}</div>
-                  <div className="mt-1 text-base font-semibold text-stone-800">{value}</div>
+                <div key={label} className="border border-border bg-white/70 px-3 py-2">
+                  <div className="text-xs text-content-tertiary">{label}</div>
+                  <div className="mt-1 text-base font-semibold text-content">{value}</div>
                 </div>
               ))}
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <Button className="h-10 rounded-xl bg-stone-950 px-3 text-white hover:bg-stone-800" onClick={() => void toggle()} disabled={isSaving}>
+              <Button className="h-10 rounded-xl bg-primary-600 px-3 text-white hover:bg-primary-700" onClick={() => void toggle()} disabled={isSaving}>
                 {isSaving ? <LoaderCircle className="size-4 animate-spin" /> : config.enabled ? <Square className="size-4" /> : <Play className="size-4" />}
                 {config.enabled ? "Dừng" : "Bắt đầu"}
               </Button>
-              <Button variant="outline" className="h-10 rounded-xl border-stone-200 bg-white px-3 text-stone-700" onClick={() => void reset()} disabled={isSaving || config.enabled}>
+              <Button variant="outline" className="h-10 rounded-xl border-border bg-white px-3 text-content" onClick={() => void reset()} disabled={isSaving || config.enabled}>
                 <RotateCcw className="size-4" />
                 Đặt lại
               </Button>
-              <Button variant="outline" className="h-10 rounded-xl border-stone-200 bg-white px-3 text-stone-700" onClick={() => void save()} disabled={isSaving || config.enabled}>
+              <Button variant="outline" className="h-10 rounded-xl border-border bg-white px-3 text-content" onClick={() => void save()} disabled={isSaving || config.enabled}>
                 <Save className="size-4" />
                 Lưu
               </Button>
@@ -284,23 +284,23 @@ export function RegisterCard() {
             </div>
         </div>
 
-        <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden border-t border-stone-200 pt-4">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden border-t border-border pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-stone-900">Nhật ký theo thời gian thực</h3>
+                <h3 className="text-sm font-semibold text-content">Nhật ký theo thời gian thực</h3>
                 <p className="mt-1 text-xs text-amber-700">Gặp lỗi mã HTTP 400 v.v., cơ bản là email bị khóa vì lạm dụng, cần thay đổi tên miền email mới.</p>
               </div>
               <Badge variant="secondary" className="rounded-md">
                 {logs.length}
               </Badge>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto border border-stone-200 bg-white/70 p-3 font-mono text-xs leading-6">
+            <div className="min-h-0 flex-1 overflow-y-auto border border-border bg-white/70 p-3 font-mono text-xs leading-6">
               {logs.length === 0 ? (
-                <div className="text-stone-500">Chưa có nhật ký</div>
+                <div className="text-content-tertiary">Chưa có nhật ký</div>
               ) : (
                 logs.slice().reverse().map((item, index) => (
-                  <div key={`${item.time}-${index}`} className={item.level === "red" ? "text-rose-600" : item.level === "green" ? "text-emerald-700" : item.level === "yellow" ? "text-amber-700" : "text-stone-700"}>
-                    <span className="text-stone-400">{new Date(item.time).toLocaleTimeString()}</span>
+                  <div key={`${item.time}-${index}`} className={item.level === "red" ? "text-rose-600" : item.level === "green" ? "text-emerald-700" : item.level === "yellow" ? "text-amber-700" : "text-content"}>
+                    <span className="text-content-tertiary">{new Date(item.time).toLocaleTimeString()}</span>
                     <span className="pl-2">{item.text}</span>
                   </div>
                 ))

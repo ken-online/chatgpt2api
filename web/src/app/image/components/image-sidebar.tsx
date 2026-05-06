@@ -34,13 +34,13 @@ export function ImageSidebar({
       <div className="flex h-full min-h-0 flex-col gap-2 py-1 sm:gap-3 sm:py-2">
         {!hideActionButtons && (
           <div className="flex items-center gap-2">
-            <Button className="h-10 flex-1 rounded-xl bg-stone-950 text-white hover:bg-stone-800" onClick={onCreateDraft}>
+            <Button className="h-10 flex-1 rounded-xl bg-primary-600 text-white hover:bg-primary-700" onClick={onCreateDraft}>
               <MessageSquarePlus className="size-4" />
               Cuộc trò chuyện mới
             </Button>
             <Button
               variant="outline"
-              className="h-10 rounded-xl border-stone-200 bg-white/85 px-3 text-stone-600 hover:bg-white"
+              className="h-10 rounded-xl border-border bg-white/85 px-3 text-content-secondary hover:bg-white"
               onClick={() => void onClearHistory()}
               disabled={conversations.length === 0}
             >
@@ -56,12 +56,12 @@ export function ImageSidebar({
           )}
         >
           {isLoadingHistory ? (
-            <div className="flex items-center gap-2 px-2 py-3 text-sm text-stone-500">
+            <div className="flex items-center gap-2 px-2 py-3 text-sm text-content-tertiary">
               <LoaderCircle className="size-4 animate-spin" />
               Đang tải bản ghi cuộc trò chuyện
             </div>
           ) : conversations.length === 0 ? (
-            <div className="px-2 py-3 text-sm leading-6 text-stone-500">Chưa có bản ghi ảnh nào, sẽ hiển thị ở đây sau khi nhập dấu nhắc.</div>
+            <div className="px-2 py-3 text-sm leading-6 text-content-tertiary">Chưa có bản ghi ảnh nào, sẽ hiển thị ở đây sau khi nhập dấu nhắc.</div>
           ) : (
             conversations.map((conversation) => {
               const active = conversation.id === selectedConversationId;
@@ -73,8 +73,8 @@ export function ImageSidebar({
                     "group relative w-full border-l-2 text-left transition",
                     hideActionButtons ? "px-4 py-3.5" : "px-3 py-2 sm:py-3",
                     active
-                      ? "border-stone-900 bg-black/[0.035] text-stone-950"
-                      : "border-transparent text-stone-700 hover:border-stone-300 hover:bg-white/40",
+                      ? "border-stone-900 bg-black/[0.035] text-content"
+                      : "border-transparent text-content hover:border-border hover:bg-white/40",
                   )}
                 >
                   <button
@@ -85,7 +85,7 @@ export function ImageSidebar({
                     <div className={cn("truncate font-semibold", hideActionButtons ? "text-base" : "text-sm")}>
                       <span className="truncate">{conversation.title}</span>
                     </div>
-                    <div className={cn("mt-1 text-xs", active ? "text-stone-500" : "text-stone-400")}>
+                    <div className={cn("mt-1 text-xs", active ? "text-content-tertiary" : "text-content-tertiary")}>
                       {conversation.turns.length} lần · {formatConversationTime(conversation.updatedAt)}
                     </div>
                     {stats.running > 0 || stats.queued > 0 ? (
@@ -103,7 +103,7 @@ export function ImageSidebar({
                     <button
                       type="button"
                       onClick={() => void onDeleteConversation(conversation.id)}
-                      className="absolute top-3 right-2 inline-flex size-7 items-center justify-center rounded-md text-stone-400 opacity-0 transition hover:bg-stone-100 hover:text-rose-500 group-hover:opacity-100"
+                      className="absolute top-3 right-2 inline-flex size-7 items-center justify-center rounded-md text-content-tertiary opacity-0 transition hover:bg-surface-secondary hover:text-rose-500 group-hover:opacity-100"
                       aria-label="Xoá cuộc trò chuyện"
                     >
                       <Trash2 className="size-4" />

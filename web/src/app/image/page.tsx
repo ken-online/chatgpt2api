@@ -1111,7 +1111,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
   return (
     <>
       <section className="mx-auto grid h-[calc(100dvh-6.5rem)] min-h-0 w-full max-w-[1380px] grid-cols-1 gap-2 overflow-hidden px-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:h-[calc(100dvh-5.25rem)] sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <div className="hidden h-full min-h-0 border-r border-stone-200/70 pr-3 lg:block">
+        <div className="hidden h-full min-h-0 border-r border-border/70 pr-3 lg:block">
           <ImageSidebar
             conversations={conversations}
             isLoadingHistory={isLoadingHistory}
@@ -1161,14 +1161,14 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           <div className="flex items-center justify-between gap-2 px-1 lg:hidden">
             <Button
               variant="outline"
-              className="h-10 flex-1 rounded-2xl border-stone-200 bg-white/90 text-stone-700 shadow-sm"
+              className="h-10 flex-1 rounded-2xl border-border bg-surface text-content shadow-sm"
               onClick={() => setIsHistoryOpen(true)}
             >
               <History className="mr-2 size-4" />
               Lịch sử ({conversations.length})
             </Button>
             <Button
-              className="h-10 rounded-2xl bg-stone-950 text-white shadow-sm"
+              className="h-10 rounded-2xl bg-primary-600 text-white shadow-sm"
               onClick={handleCreateDraft}
             >
               <Plus className="size-4" />
@@ -1176,7 +1176,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
             </Button>
             <Button
               variant="outline"
-              className="h-10 rounded-2xl border-stone-200 bg-white/85 px-3 text-stone-600 shadow-sm"
+              className="h-10 rounded-2xl border-border bg-white/85 px-3 text-content-secondary shadow-sm"
               onClick={openClearHistoryConfirm}
               disabled={conversations.length === 0}
             >
@@ -1259,7 +1259,7 @@ export default function ImagePage() {
   if (isCheckingAuth || !session) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <LoaderCircle className="size-5 animate-spin text-stone-400" />
+        <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
       </div>
     );
   }

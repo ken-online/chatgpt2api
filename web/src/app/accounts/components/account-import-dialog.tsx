@@ -85,16 +85,16 @@ function MethodCard({
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-2xl border border-stone-200 bg-white p-0 text-left transition hover:border-stone-300 hover:bg-stone-50"
+      className="w-full rounded-2xl border border-border bg-white p-0 text-left transition hover:border-border hover:bg-surface-secondary"
     >
       <Card className="rounded-2xl border-0 bg-transparent shadow-none">
         <CardContent className="flex items-start gap-4 p-4">
-          <div className="rounded-xl bg-stone-100 p-3 text-stone-700">
+          <div className="rounded-xl bg-surface-secondary p-3 text-content">
             <Icon className="size-5" />
           </div>
           <div className="space-y-1">
-            <div className="text-sm font-semibold text-stone-900">{title}</div>
-            <div className="text-sm leading-6 text-stone-500">{description}</div>
+            <div className="text-sm font-semibold text-content">{title}</div>
+            <div className="text-sm leading-6 text-content-tertiary">{description}</div>
           </div>
         </CardContent>
       </Card>
@@ -268,32 +268,32 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
             <button
               type="button"
               onClick={() => setMethod("menu")}
-              className="inline-flex items-center gap-1 text-sm text-stone-500 transition hover:text-stone-800"
+              className="inline-flex items-center gap-1 text-sm text-content-tertiary transition hover:text-content"
             >
               <ArrowLeft className="size-4" />
               Quay lại cách nhập
             </button>
-            <span className="text-xs text-stone-400">Hiện tại nhận dạng được {tokenCount} Token</span>
+            <span className="text-xs text-content-tertiary">Hiện tại nhận dạng được {tokenCount} Token</span>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">Danh sách Access Token</label>
+            <label className="text-sm font-medium text-content">Danh sách Access Token</label>
             <Textarea
               placeholder="Mỗi dòng một Access Token..."
               value={tokenInput}
               onChange={(event) => setTokenInput(event.target.value)}
-              className="min-h-56 resize-none rounded-xl border-stone-200"
+              className="min-h-56 resize-none rounded-xl border-border"
             />
           </div>
-          <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50 p-4">
+          <div className="rounded-2xl border border-dashed border-border bg-surface-secondary p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
-                <div className="text-sm font-medium text-stone-800">Nhập từ file TXT</div>
-                <div className="text-sm leading-6 text-stone-500">Hỗ trợ `.txt`, nội dung file cũng là mỗi dòng một Token.</div>
+                <div className="text-sm font-medium text-content">Nhập từ file TXT</div>
+                <div className="text-sm leading-6 text-content-tertiary">Hỗ trợ `.txt`, nội dung file cũng là mỗi dòng một Token.</div>
               </div>
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl border-stone-200 bg-white"
+                className="rounded-xl border-border bg-white"
                 onClick={() => txtInputRef.current?.click()}
                 disabled={isSubmitting}
               >
@@ -319,19 +319,19 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
           <button
             type="button"
             onClick={() => setMethod("menu")}
-            className="inline-flex items-center gap-1 text-sm text-stone-500 transition hover:text-stone-800"
+            className="inline-flex items-center gap-1 text-sm text-content-tertiary transition hover:text-content"
           >
             <ArrowLeft className="size-4" />
             Quay lại cách nhập
           </button>
-          <div className="rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+          <div className="rounded-2xl border border-border bg-surface-secondary p-4 text-sm leading-6 text-content-secondary">
             Mở
             {" "}
             <a
               href={sessionUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-stone-900 underline underline-offset-4"
+              className="inline-flex items-center gap-1 font-medium text-content underline underline-offset-4"
             >
               {sessionUrl}
               <ExternalLink className="size-3.5" />
@@ -345,12 +345,12 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-stone-700">Session JSON</label>
+            <label className="text-sm font-medium text-content">Session JSON</label>
             <Textarea
               placeholder='Dán JSON hoàn chỉnh, ví dụ đối tượng chứa "accessToken"...'
               value={sessionInput}
               onChange={(event) => setSessionInput(event.target.value)}
-              className="min-h-56 resize-none rounded-xl border-stone-200 font-mono text-xs"
+              className="min-h-56 resize-none rounded-xl border-border font-mono text-xs"
             />
           </div>
         </div>
@@ -363,21 +363,21 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
           <button
             type="button"
             onClick={() => setMethod("menu")}
-            className="inline-flex items-center gap-1 text-sm text-stone-500 transition hover:text-stone-800"
+            className="inline-flex items-center gap-1 text-sm text-content-tertiary transition hover:text-content"
           >
             <ArrowLeft className="size-4" />
             Quay lại cách nhập
           </button>
-          <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50 p-5">
+          <div className="rounded-2xl border border-dashed border-border bg-surface-secondary p-5">
             <div className="space-y-2">
-              <div className="text-sm font-medium text-stone-800">Chọn nhiều file JSON CPA local</div>
-              <div className="text-sm leading-6 text-stone-500">
+              <div className="text-sm font-medium text-content">Chọn nhiều file JSON CPA local</div>
+              <div className="text-sm leading-6 text-content-tertiary">
                 Mỗi file nên là một đối tượng JSON。Hệ thống sẽ tự động trích xuất `access_token` hoặc `accessToken` từ đối tượng,
               </div>
             </div>
             <Button
               type="button"
-              className="mt-4 rounded-xl bg-stone-950 text-white hover:bg-stone-800"
+              className="mt-4 rounded-xl bg-primary-600 text-white hover:bg-primary-700"
               onClick={() => cpaInputRef.current?.click()}
               disabled={isSubmitting}
             >
@@ -394,7 +394,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
             onChange={(event) => void handleCpaSelected(event)}
           />
           {pendingCpaImport ? (
-            <div className="rounded-2xl border border-stone-200 bg-white p-4 text-sm leading-6 text-stone-600">
+            <div className="rounded-2xl border border-border bg-white p-4 text-sm leading-6 text-content-secondary">
               Lần gần nhất đọc được {pendingCpaImport.parsedFileCount} Token
               {pendingCpaImport.errorCount > 0 ? `，ngoài ra còn ${pendingCpaImport.errorCount} file không trích xuất được` : ""}。
             </div>
@@ -453,7 +453,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <Button
-          className="h-10 rounded-xl bg-stone-950 px-4 text-white hover:bg-stone-800"
+          className="h-10 rounded-xl bg-primary-600 px-4 text-white hover:bg-primary-700"
           onClick={() => setOpen(true)}
           disabled={disabled}
         >
@@ -487,7 +487,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
           <DialogFooter className="pt-2">
             <Button
               variant="secondary"
-              className="h-10 rounded-xl bg-stone-100 px-5 text-stone-700 hover:bg-stone-200"
+              className="h-10 rounded-xl bg-surface-secondary px-5 text-content hover:bg-surface-tertiary"
               onClick={() => setOpen(false)}
               disabled={footerDisabled}
             >
@@ -495,7 +495,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
             </Button>
             {method === "token" ? (
               <Button
-                className="h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800"
+                className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
                 onClick={() => void handleImportTokenText()}
                 disabled={footerDisabled}
               >
@@ -505,7 +505,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
             ) : null}
             {method === "session" ? (
               <Button
-                className="h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800"
+                className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
                 onClick={() => void handleImportSessionJson()}
                 disabled={footerDisabled}
               >
@@ -516,7 +516,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
             {method === "cpa" ? (
               <Button
                 className={cn(
-                  "h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800",
+                  "h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700",
                   !pendingCpaImport ? "hidden" : "",
                 )}
                 onClick={() => setConfirmOpen(true)}
@@ -545,14 +545,14 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
           <DialogFooter className="pt-2">
             <Button
               variant="secondary"
-              className="h-10 rounded-xl bg-stone-100 px-5 text-stone-700 hover:bg-stone-200"
+              className="h-10 rounded-xl bg-surface-secondary px-5 text-content hover:bg-surface-tertiary"
               onClick={() => setConfirmOpen(false)}
               disabled={isSubmitting}
             >
               Quay lại
             </Button>
             <Button
-              className="h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800"
+              className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
               onClick={() => void submitTokens(pendingCpaImport?.tokens ?? [], "Nhập CPA JSON hoàn tất")}
               disabled={isSubmitting || !pendingCpaImport}
             >
