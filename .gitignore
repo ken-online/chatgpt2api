@@ -28,3 +28,11 @@ docker-compose-local.yml
 
 # Git cache
 git_cache/
+
+# Superpowers brainstorm sessions
+.superpowers/
+
+# Local helper scripts
+run.bat
+run.config.bat
+update.bat
