@@ -10,7 +10,6 @@ web_dist
 .venv
 .idea
 data
-config.json
 edit
 
 docker-compose-local.yml
@@ -36,7 +35,3 @@ git_cache/
 # Superpowers brainstorm sessions
 .superpowers/
 
-# Local helper scripts
-run.bat
-run.config.bat
-update.bat
