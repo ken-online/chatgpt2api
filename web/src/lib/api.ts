@@ -719,6 +719,13 @@ export async function testProxy(url?: string) {
   });
 }
 
+export async function deleteImages(paths: string[]) {
+  return httpRequest<{ deleted: number }>("/api/delete-images", {
+    method: "POST",
+    body: { paths },
+  });
+}
+
 export async function removeBackground(
   source: { type: "b64"; b64: string; mime: string } | { type: "url"; url: string },
   idToken: string,

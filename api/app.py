@@ -2,16 +2,23 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from threading import Event
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel as PydanticBaseModel
 
 from api import accounts, ai, image_tasks, register, remove_background, system
 from api.support import resolve_web_asset, start_limited_account_watcher
 from services.backup_service import backup_service
 from services.config import config
+from services.image_service import delete_images as delete_stored_images
+
+
+class DeleteImagesRequest(PydanticBaseModel):
+    paths: list[str]
 
 
 def create_app() -> FastAPI:
@@ -62,6 +69,19 @@ def create_app() -> FastAPI:
             media_type="image/png",
             headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
         )
+
+    @app.post("/api/delete-images", include_in_schema=False)
+    async def delete_images_endpoint(request: DeleteImagesRequest):
+        paths = []
+        for path in request.paths:
+            clean = urlparse(path).path.lstrip("/")
+            if not clean.startswith("images/"):
+                continue
+            rel = clean.removeprefix("images/").lstrip("/")
+            if rel:
+                paths.append(rel)
+        result = delete_stored_images(list(dict.fromkeys(paths)))
+        return {"deleted": result["removed"]}
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_web(full_path: str):

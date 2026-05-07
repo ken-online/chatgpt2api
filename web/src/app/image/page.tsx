@@ -23,6 +23,7 @@ import { Card } from "@/components/ui/card";
 import {
   createImageEditTask,
   createImageGenerationTask,
+  deleteImages,
   fetchAccounts,
   fetchImageTasks,
   type Account,
@@ -198,6 +199,22 @@ function pickFallbackConversationId(conversations: ImageConversation[]) {
 
 function sortImageConversations(conversations: ImageConversation[]) {
   return [...conversations].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function toServerImagePath(raw: string): string | null {
+  try {
+    const url = raw.startsWith("http") ? new URL(raw) : new URL(raw, window.location.origin);
+    if (url.pathname.startsWith("/images/")) {
+      return url.pathname;
+    }
+    const downloadPath = url.searchParams.get("path");
+    if (downloadPath?.startsWith("/images/")) {
+      return downloadPath;
+    }
+    return null;
+  } catch {
+    return raw.startsWith("/images/") ? raw : null;
+  }
 }
 
 function deriveTurnStatus(turn: ImageTurn): Pick<ImageTurn, "status" | "error"> {
@@ -400,7 +417,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
         : deleteConfirm?.type === "results"
           ? "Xác nhận xoá kết quả tạo này không? Bản ghi Prompt tương ứng sẽ được giữ lại."
           : deleteConfirm?.type === "one"
-            ? "Xác nhận xoá cuộc trò chuyện ảnh này không? Không thể khôi phục sau khi xoá."
+            ? "Chọn cách xoá cuộc trò chuyện này. Ảnh đã tạo có thể giữ lại hoặc xoá luôn khỏi máy chủ."
             : "";
 
   useEffect(() => {
@@ -579,23 +596,37 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     textareaRef.current?.focus();
   }, [resetComposer]);
 
-  const handleDeleteConversation = async (id: string) => {
-    const nextConversations = conversations.filter((item) => item.id !== id);
-    conversationsRef.current = nextConversations;
-    setConversations(nextConversations);
-    if (selectedConversationId === id) {
-      setSelectedConversationId(pickFallbackConversationId(nextConversations));
-      resetComposer();
-    }
+  const handleDeleteConversation = async (id: string, withImages = false) => {
+    const conversation = withImages
+      ? conversationsRef.current.find((item) => item.id === id) ?? null
+      : null;
 
     try {
+      if (withImages && conversation) {
+        const allImages = conversation.turns.flatMap((turn) => [
+          ...turn.images,
+          ...(turn.revisions ?? []).flat(),
+        ]);
+        const paths = Array.from(new Set(allImages.flatMap((img) => [
+          ...(img.url ? [toServerImagePath(img.url)].filter(Boolean) as string[] : []),
+          ...(img.remove_bg_url ? [toServerImagePath(img.remove_bg_url)].filter(Boolean) as string[] : []),
+        ])));
+        if (paths.length > 0) {
+          await deleteImages(paths);
+        }
+      }
       await deleteImageConversation(id);
+
+      const nextConversations = conversationsRef.current.filter((item) => item.id !== id);
+      conversationsRef.current = nextConversations;
+      setConversations(nextConversations);
+      if (selectedConversationId === id) {
+        setSelectedConversationId(pickFallbackConversationId(nextConversations));
+        resetComposer();
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể xoá phiên";
       toast.error(message);
-      const items = await listImageConversations();
-      conversationsRef.current = items;
-      setConversations(items);
     }
   };
 
@@ -1372,14 +1403,43 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
                 {deleteConfirmDescription}
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
-                Hủy
-              </Button>
-              <Button className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => void handleConfirmDelete()}>
-                Xác nhận xoá
-              </Button>
-            </DialogFooter>
+            {deleteConfirm?.type === "one" ? (
+              <DialogFooter className="flex-col gap-2 sm:flex-row">
+                <Button variant="outline" className="sm:mr-auto" onClick={() => setDeleteConfirm(null)}>
+                  Hủy
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-rose-500/40 text-rose-500 hover:bg-rose-500/10"
+                  onClick={() => {
+                    const id = deleteConfirm.id;
+                    setDeleteConfirm(null);
+                    void handleDeleteConversation(id, false);
+                  }}
+                >
+                  Chỉ xóa lịch sử
+                </Button>
+                <Button
+                  className="bg-rose-600 text-white hover:bg-rose-700"
+                  onClick={() => {
+                    const id = deleteConfirm.id;
+                    setDeleteConfirm(null);
+                    void handleDeleteConversation(id, true);
+                  }}
+                >
+                  Xóa cả ảnh
+                </Button>
+              </DialogFooter>
+            ) : (
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+                  Hủy
+                </Button>
+                <Button className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => void handleConfirmDelete()}>
+                  Xác nhận xoá
+                </Button>
+              </DialogFooter>
+            )}
           </DialogContent>
         </Dialog>
       ) : null}
