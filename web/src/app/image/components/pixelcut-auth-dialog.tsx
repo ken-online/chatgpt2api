@@ -24,23 +24,35 @@ type Props = {
   onAuthSaved: (idToken: string, orgId: string) => void;
 };
 
-export function PixelcutAuthDialog({ open, onOpenChange, onAuthSaved }: Props) {
-  const [idToken, setIdToken] = useState(() =>
-    typeof window !== "undefined" ? (localStorage.getItem(PIXELCUT_TOKEN_KEY) ?? "") : "",
-  );
-  const [orgId, setOrgId] = useState(() =>
-    typeof window !== "undefined" ? (localStorage.getItem(PIXELCUT_ORG_KEY) ?? "") : "",
-  );
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  const canSave = idToken.trim().length > 0 && orgId.trim().length > 0;
+function parseInput(raw: string): { idToken: string; orgId: string } {
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  let idToken = "";
+  let orgId = "";
+  for (const line of lines) {
+    if (!idToken && line.startsWith("eyJ")) idToken = line;
+    else if (!orgId && UUID_PATTERN.test(line)) orgId = line;
+  }
+  return { idToken, orgId };
+}
+
+export function PixelcutAuthDialog({ open, onOpenChange, onAuthSaved }: Props) {
+  const [raw, setRaw] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const token = localStorage.getItem(PIXELCUT_TOKEN_KEY) ?? "";
+    const org = localStorage.getItem(PIXELCUT_ORG_KEY) ?? "";
+    return [token, org].filter(Boolean).join("\n");
+  });
+
+  const { idToken, orgId } = parseInput(raw);
+  const canSave = idToken.length > 0 && orgId.length > 0;
 
   const handleSave = () => {
-    const trimmedToken = idToken.trim();
-    const trimmedOrg = orgId.trim();
-    if (!trimmedToken || !trimmedOrg) return;
-    localStorage.setItem(PIXELCUT_TOKEN_KEY, trimmedToken);
-    localStorage.setItem(PIXELCUT_ORG_KEY, trimmedOrg);
-    onAuthSaved(trimmedToken, trimmedOrg);
+    if (!idToken || !orgId) return;
+    localStorage.setItem(PIXELCUT_TOKEN_KEY, idToken);
+    localStorage.setItem(PIXELCUT_ORG_KEY, orgId);
+    onAuthSaved(idToken, orgId);
     onOpenChange(false);
   };
 
@@ -50,50 +62,53 @@ export function PixelcutAuthDialog({ open, onOpenChange, onAuthSaved }: Props) {
         <DialogHeader className="gap-1.5">
           <DialogTitle>Cấu hình Pixelcut Auth</DialogTitle>
           <DialogDescription className="text-sm leading-5">
-            Lấy token từ{" "}
-            <a
-              href={PIXELCUT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-content"
-            >
+            Mở DevTools (F12) → Console tại{" "}
+            <a href={PIXELCUT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-content">
               pixelcut.ai
             </a>
-            , sau đó paste vào đây. Token hết hạn sau ~1 giờ.
+            , chạy 2 lệnh dưới rồi paste kết quả vào ô bên dưới.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 py-1">
           <div className="rounded-lg border border-border bg-surface-secondary px-3 py-2.5 text-[11px] font-mono leading-5 text-content-secondary">
-            <p className="mb-1 text-content-tertiary">// 1. Mở DevTools (F12) → Console tại pixelcut.ai</p>
-            <p className="mb-2 text-content-tertiary">// 2. Chạy từng lệnh và copy kết quả:</p>
-            <p className="mb-1 text-content-tertiary">{"// ID Token (hết hạn sau ~1h):"}</p>
+            <p className="mb-1 text-content-tertiary">{"// ID Token (~1h):"}</p>
             <p className="select-all break-all">(await (await import('/assets/index-BPx7Hk69.js')).auth.currentUser.getIdToken())</p>
             <p className="mt-2 mb-1 text-content-tertiary">{"// Org ID:"}</p>
             <p className="select-all break-all">{"Object.values(JSON.parse(localStorage.getItem('pixa-wks-store')).state.orgIdsByUser)[0]"}</p>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-content">ID Token</label>
+            <label className="text-xs font-medium text-content">Paste 2 dòng token vào đây</label>
             <textarea
-              value={idToken}
-              onChange={(e) => setIdToken(e.target.value)}
-              placeholder="eyJhbGciOiJSUzI1NiIs..."
-              rows={3}
+              value={raw}
+              onChange={(e) => setRaw(e.target.value)}
+              placeholder={"eyJhbGciOiJSUzI1Ni...\n171ad7c6-392f-48d2-a014-27483fe677bd"}
+              rows={4}
               className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2 text-xs font-mono text-content placeholder:text-content-tertiary focus:outline-none focus:ring-2 focus:ring-primary-600/30"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-content">Org ID</label>
-            <input
-              type="text"
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              placeholder="171ad7c6-392f-48d2-a014-27483fe677bd"
-              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs font-mono text-content placeholder:text-content-tertiary focus:outline-none focus:ring-2 focus:ring-primary-600/30"
-            />
-          </div>
+          {raw.trim().length > 0 && (
+            <div className="rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[11px] font-mono space-y-1">
+              <div className="flex gap-2">
+                <span className={idToken ? "text-emerald-500" : "text-rose-500"}>
+                  {idToken ? "✓" : "✗"}
+                </span>
+                <span className="text-content-tertiary truncate">
+                  {idToken ? `Token: ${idToken.slice(0, 30)}…` : "Chưa tìm thấy ID Token (bắt đầu bằng eyJ)"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className={orgId ? "text-emerald-500" : "text-rose-500"}>
+                  {orgId ? "✓" : "✗"}
+                </span>
+                <span className="text-content-tertiary">
+                  {orgId ? `Org ID: ${orgId}` : "Chưa tìm thấy Org ID (dạng UUID)"}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">

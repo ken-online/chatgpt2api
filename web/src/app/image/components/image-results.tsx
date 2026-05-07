@@ -101,6 +101,8 @@ export function ImageResults({
         localStorage.removeItem(PIXELCUT_ORG_KEY);
         toast.error("Token Pixelcut hết hạn, vui lòng lấy token mới");
         window.open("https://www.pixelcut.ai/ai-image-editor?tool=removeBackground", "_blank", "noopener,noreferrer");
+        setPendingRemoveBg({ id: imageId, src: imageSrc, conversationId, turnId });
+        setShowPixelcutAuth(true);
       } else {
         toast.error(error instanceof Error ? error.message : "Xóa nền thất bại");
       }
@@ -281,10 +283,10 @@ export function ImageResults({
 
             {/* Results — flat layout bên trái */}
             {!turn.resultsDeleted ? (
-              <div className="flex flex-col gap-2.5">
+              <div className="image-no-select flex flex-col gap-2.5">
                 <div
                   className={cn(
-                    "relative",
+                    "relative select-none",
                     displayImages.length + displayImages.filter((img) => removeBgResults[img.id] || img.remove_bg_url).length === 1
                       ? "max-w-lg"
                       : "",
@@ -311,6 +313,14 @@ export function ImageResults({
                         <ChevronRight className="size-4" />
                       </button>
                     </>
+                  ) : null}
+
+                  {isLive && !isViewingCurrent ? (
+                    <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                      <div className="rounded-full bg-black/60 p-3 shadow-lg backdrop-blur-sm">
+                        <LoaderCircle className="size-5 animate-spin text-white" />
+                      </div>
+                    </div>
                   ) : null}
 
                   <div
@@ -343,6 +353,9 @@ export function ImageResults({
                               src={imageSrc}
                               alt={`Generated result ${index + 1}`}
                               className="block h-auto w-full select-none transition duration-300 group-hover/img:scale-[1.02]"
+                              draggable={false}
+                              onDragStart={(e) => e.preventDefault()}
+                              onMouseDown={(e) => e.preventDefault()}
                               onLoad={(event) => {
                                 updateImageDimensions(
                                   image.id,
@@ -410,6 +423,9 @@ export function ImageResults({
                               src={removeBgSrc}
                               alt="Đã xóa nền"
                               className="block h-auto w-full select-none"
+                              draggable={false}
+                              onDragStart={(e) => e.preventDefault()}
+                              onMouseDown={(e) => e.preventDefault()}
                             />
                             <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 transition group-hover/removebg:opacity-100">
                               <span className="rounded-md bg-black/50 px-2 py-1 text-[11px] text-white/90 backdrop-blur-sm">
@@ -457,11 +473,28 @@ export function ImageResults({
                       ];
                     }
 
+                    const prevRevImages = revisions.length > 0 ? revisions[revisions.length - 1] : null;
+                    const prevImg = prevRevImages?.[index];
+                    const prevSrc = prevImg ? getStoredImageSrc(prevImg) : "";
+
+                    if (turn.status === "generating" && prevSrc) {
+                      return [
+                        <div key={image.id} className="relative inline-block w-full overflow-hidden rounded-xl">
+                          <img src={prevSrc} alt="" className="block h-auto w-full select-none" draggable={false} />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="rounded-full bg-black/60 p-3 shadow-lg backdrop-blur-sm">
+                              <LoaderCircle className="size-5 animate-spin text-white" />
+                            </div>
+                          </div>
+                        </div>,
+                      ];
+                    }
+
                     return [
                       <div
                         key={image.id}
                         className={cn(
-                          "flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-surface-secondary text-content-tertiary",
+                          "flex w-full items-center justify-center overflow-hidden rounded-xl bg-surface-secondary text-content-tertiary",
                           placeholderAspect,
                         )}
                       >
@@ -470,7 +503,6 @@ export function ImageResults({
                         ) : (
                           <LoaderCircle className="size-5 animate-spin" />
                         )}
-                        <p className="text-[11px]">{turn.status === "queued" ? "Chờ" : "Đang tạo"}</p>
                       </div>,
                     ];
                   })}

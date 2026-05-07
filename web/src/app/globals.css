@@ -3,6 +3,28 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer base {
+  img {
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  img::selection,
+  img::-moz-selection {
+    background: transparent;
+  }
+  /* Ngăn selection highlight trên toàn bộ image card container */
+  .image-no-select,
+  .image-no-select * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .image-no-select *::selection,
+  .image-no-select *::-moz-selection {
+    background: transparent;
+  }
+}
+
 @theme inline {
   /* Surfaces & content semantic vars */
   --color-bg-app: var(--bg-app);

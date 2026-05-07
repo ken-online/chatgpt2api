@@ -100,24 +100,19 @@ export function ImageSidebar({
                     >
                       {conversation.title}
                     </div>
-                    <div className="mt-1 text-xs text-content-tertiary">
-                      {conversation.turns.length} lần · {formatConversationTime(conversation.updatedAt)}
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-content-tertiary">
+                      <span>{conversation.turns.length} lần · {formatConversationTime(conversation.updatedAt)}</span>
+                      {isRunning ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 px-2 py-0.5 text-[11px] text-blue-400">
+                          <LoaderCircle className="size-3 animate-spin" />
+                          Đang xử lý {stats.running}
+                        </span>
+                      ) : stats.queued > 0 ? (
+                        <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] text-amber-400">
+                          Chờ {stats.queued}
+                        </span>
+                      ) : null}
                     </div>
-                    {isProcessing ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                        {isRunning ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 px-2 py-0.5 text-blue-400">
-                            <LoaderCircle className="size-3 animate-spin" />
-                            Đang xử lý {stats.running}
-                          </span>
-                        ) : null}
-                        {stats.queued > 0 ? (
-                          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-amber-400">
-                            Chờ xử lý {stats.queued}
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </button>
                   {!hideActionButtons ? (
                     <button

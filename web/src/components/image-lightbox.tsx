@@ -90,6 +90,7 @@ export function ImageLightbox({
 }: ImageLightboxProps) {
   const gestureRef = useRef<TouchGesture | null>(null);
   const lastTapRef = useRef(0);
+  const wheelAccRef = useRef(0);
   const [transform, setTransform] = useState<ImageTransform>({ scale: 1, x: 0, y: 0 });
   const current = images[currentIndex];
   const hasPrev = currentIndex > 0;
@@ -129,47 +130,69 @@ export function ImageLightbox({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, goPrev, goNext]);
 
-  const handleDownload = useCallback(async () => {
+  const handleDownload = useCallback(() => {
     if (!current) return;
     const src = current.src;
     const filename = `image-${current.id}.png`;
 
-    const triggerBlobDownload = (blobUrl: string) => {
+    const triggerLink = (href: string, revokeAfter?: string) => {
       const link = document.createElement("a");
       link.style.display = "none";
-      link.href = blobUrl;
+      link.href = href;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
-      // Delay cả removeChild và revokeObjectURL để browser kịp xử lý download
       setTimeout(() => {
         link.remove();
-        URL.revokeObjectURL(blobUrl);
+        if (revokeAfter) URL.revokeObjectURL(revokeAfter);
       }, 2000);
     };
 
-    try {
-      let blobUrl: string;
-      if (src.startsWith("data:")) {
+    if (src.startsWith("data:")) {
+      try {
         const [header, base64 = ""] = src.split(",", 2);
         const mime = header.match(/data:(.*?);/)?.[1] || "image/png";
-        // API có thể trả về base64 có whitespace/line-breaks → phải strip trước atob
         const cleanBase64 = base64.replace(/\s/g, "");
         const binary = atob(cleanBase64);
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
-      } else {
-        const response = await fetch(src);
-        if (!response.ok) throw new Error("fetch failed");
-        blobUrl = URL.createObjectURL(await response.blob());
+        const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+        triggerLink(blobUrl, blobUrl);
+      } catch {
+        window.open(src, "_blank", "noopener,noreferrer");
       }
-      triggerBlobDownload(blobUrl);
-    } catch {
-      // External URL hoặc data URL lỗi: mở tab mới
-      window.open(src, "_blank", "noopener,noreferrer");
+    } else if (src.startsWith("blob:")) {
+      triggerLink(src);
+    } else {
+      // Server URL → dùng /api/download-image để tránh cross-origin fetch
+      const path = src.startsWith("http") ? new URL(src).pathname : src;
+      triggerLink(`/api/download-image?path=${encodeURIComponent(path)}&filename=${encodeURIComponent(filename)}`);
     }
   }, [current]);
+
+  const handleWheel = useCallback(
+    (e: React.WheelEvent<HTMLDivElement>) => {
+      if (transform.scale > minScale) return;
+      wheelAccRef.current += e.deltaY;
+      if (Math.abs(wheelAccRef.current) < 80) return;
+      const goDown = wheelAccRef.current > 0;
+      wheelAccRef.current = 0;
+      if (goDown) {
+        if (revisionNav && revisionNav.total > 1) {
+          if (revisionNav.slot < revisionNav.total - 1) revisionNav.onNext();
+        } else {
+          goNext();
+        }
+      } else {
+        if (revisionNav && revisionNav.total > 1) {
+          if (revisionNav.slot > 0) revisionNav.onPrev();
+        } else {
+          goPrev();
+        }
+      }
+    },
+    [transform.scale, revisionNav, goNext, goPrev],
+  );
 
   const toggleZoom = useCallback(() => {
     setTransform((currentTransform) =>
@@ -337,12 +360,13 @@ export function ImageLightbox({
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onWheel={handleWheel}
           >
             <img
               src={current.src}
               alt=""
               className={cn(
-                "max-h-[90vh] max-w-[90vw] rounded-lg object-contain transition-transform duration-100",
+                "max-h-[90vh] max-w-[90vw] select-none rounded-lg object-contain transition-transform duration-100",
                 transform.scale > minScale ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in",
               )}
               style={{
@@ -354,6 +378,7 @@ export function ImageLightbox({
                 toggleZoom();
               }}
               draggable={false}
+              onMouseDown={(e) => e.preventDefault()}
             />
           </div>
 
@@ -369,29 +394,31 @@ export function ImageLightbox({
           )}
 
           {revisionNav && revisionNav.total > 1 ? (
-            <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm">
+            <>
               <button
                 type="button"
                 onClick={revisionNav.onPrev}
                 disabled={revisionNav.slot === 0}
-                className="inline-flex size-7 items-center justify-center rounded-full transition hover:bg-white/20 disabled:opacity-30"
+                className="absolute left-4 top-1/2 z-10 -translate-y-1/2 inline-flex size-20 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 disabled:opacity-20"
                 aria-label="Phiên bản cũ hơn"
               >
-                <ChevronLeft className="size-4 text-white" />
+                <ChevronLeft className="size-10" />
               </button>
-              <span className="min-w-[7rem] text-center text-xs font-medium tabular-nums text-white/90">
-                Phiên bản {revisionNav.slot + 1} / {revisionNav.total}
-              </span>
               <button
                 type="button"
                 onClick={revisionNav.onNext}
                 disabled={revisionNav.slot >= revisionNav.total - 1}
-                className="inline-flex size-7 items-center justify-center rounded-full transition hover:bg-white/20 disabled:opacity-30"
+                className="absolute right-4 top-1/2 z-10 -translate-y-1/2 inline-flex size-20 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 disabled:opacity-20"
                 aria-label="Phiên bản mới hơn"
               >
-                <ChevronRight className="size-4 text-white" />
+                <ChevronRight className="size-10" />
               </button>
-            </div>
+              <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2">
+                <span className="rounded-full bg-black/50 px-3 py-1.5 text-xs font-medium tabular-nums text-white/90 backdrop-blur-sm">
+                  Phiên bản {revisionNav.slot + 1} / {revisionNav.total}
+                </span>
+              </div>
+            </>
           ) : null}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
