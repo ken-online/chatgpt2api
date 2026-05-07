@@ -20,6 +20,7 @@ export type StoredImage = {
   url?: string;
   revised_prompt?: string;
   error?: string;
+  remove_bg_url?: string;
 };
 
 export type ImageTurnStatus = "queued" | "generating" | "success" | "error";
@@ -33,6 +34,7 @@ export type ImageTurn = {
   count: number;
   size: string;
   images: StoredImage[];
+  revisions?: StoredImage[][];
   createdAt: string;
   status: ImageTurnStatus;
   error?: string;
@@ -67,6 +69,7 @@ function normalizeStoredImage(image: StoredImage): StoredImage {
     taskId: typeof image.taskId === "string" && image.taskId ? image.taskId : undefined,
     url: typeof image.url === "string" && image.url ? image.url : undefined,
     revised_prompt: typeof image.revised_prompt === "string" ? image.revised_prompt : undefined,
+    remove_bg_url: typeof image.remove_bg_url === "string" && image.remove_bg_url ? image.remove_bg_url : undefined,
   };
   if (image.status === "loading" || image.status === "error" || image.status === "success") {
     return normalized;
@@ -148,6 +151,11 @@ function normalizeTurn(turn: ImageTurn & Record<string, unknown>): ImageTurn {
     error: typeof turn.error === "string" ? turn.error : undefined,
     promptDeleted: turn.promptDeleted === true,
     resultsDeleted: turn.resultsDeleted === true,
+    revisions: Array.isArray(turn.revisions)
+      ? turn.revisions
+          .filter(Array.isArray)
+          .map((rev) => (rev as StoredImage[]).map(normalizeStoredImage))
+      : undefined,
   };
 }
 

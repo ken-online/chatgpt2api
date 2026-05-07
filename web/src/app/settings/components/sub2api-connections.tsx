@@ -382,7 +382,7 @@ export function Sub2APIConnections() {
 
   return (
     <>
-      <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+      <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
         <CardContent className="space-y-6 p-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -428,7 +428,7 @@ export function Sub2APIConnections() {
                 return (
                   <div
                     key={server.id}
-                    className="flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-3"
+                    className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -468,7 +468,7 @@ export function Sub2APIConnections() {
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
-                        className="h-8 rounded-lg border-border bg-white px-3 text-xs text-content-secondary"
+                        className="h-8 rounded-lg border-border bg-surface px-3 text-xs text-content-secondary"
                         onClick={() => void handleBrowseAccounts(server)}
                         disabled={isBusy}
                       >
@@ -490,7 +490,7 @@ export function Sub2APIConnections() {
                               ? Math.round((importJob.completed / importJob.total) * 100)
                               : 0;
                           return (
-                            <div className="rounded-lg border border-border bg-white px-3 py-3">
+                            <div className="rounded-lg border border-border bg-surface px-3 py-3">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="text-sm font-medium text-content">
@@ -563,7 +563,7 @@ export function Sub2APIConnections() {
                 value={formName}
                 onChange={(event) => setFormName(event.target.value)}
                 placeholder="Ví dụ: sub2api tự xây dựng"
-                className="h-11 rounded-xl border-border bg-white"
+                className="h-11 rounded-xl border-border bg-surface"
               />
             </div>
             <div className="space-y-2">
@@ -575,13 +575,13 @@ export function Sub2APIConnections() {
                 value={formBaseUrl}
                 onChange={(event) => setFormBaseUrl(event.target.value)}
                 placeholder="http://your-sub2api-host:8080"
-                className="h-11 rounded-xl border-border bg-white"
+                className="h-11 rounded-xl border-border bg-surface"
               />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-content">Phương thức xác thực</label>
               <Select value={authMode} onValueChange={(value) => setAuthMode(value as AuthMode)}>
-                <SelectTrigger className="h-11 rounded-xl border-border bg-white">
+                <SelectTrigger className="h-11 rounded-xl border-border bg-surface">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -601,7 +601,7 @@ export function Sub2APIConnections() {
                     value={formEmail}
                     onChange={(event) => setFormEmail(event.target.value)}
                     placeholder="admin@example.com"
-                    className="h-11 rounded-xl border-border bg-white"
+                    className="h-11 rounded-xl border-border bg-surface"
                   />
                 </div>
                 <div className="space-y-2">
@@ -615,7 +615,7 @@ export function Sub2APIConnections() {
                       value={formPassword}
                       onChange={(event) => setFormPassword(event.target.value)}
                       placeholder={editingServer ? "Để trống thì không sửa đổi mật khẩu" : "Mật khẩu quản trị viên"}
-                      className="h-11 rounded-xl border-border bg-white pr-10"
+                      className="h-11 rounded-xl border-border bg-surface pr-10"
                     />
                     <button
                       type="button"
@@ -639,7 +639,7 @@ export function Sub2APIConnections() {
                     value={formApiKey}
                     onChange={(event) => setFormApiKey(event.target.value)}
                     placeholder={editingServer ? "Để trống thì không sửa đổi khóa" : "Sub2API Admin API Key"}
-                    className="h-11 rounded-xl border-border bg-white pr-10"
+                    className="h-11 rounded-xl border-border bg-surface pr-10"
                   />
                   <button
                     type="button"
@@ -658,7 +658,7 @@ export function Sub2APIConnections() {
               </label>
               {remoteGroups && remoteGroups.length > 0 ? (
                 <Select value={formGroupId || "__all__"} onValueChange={(value) => setFormGroupId(value === "__all__" ? "" : value)}>
-                  <SelectTrigger className="h-11 rounded-xl border-border bg-white">
+                  <SelectTrigger className="h-11 rounded-xl border-border bg-surface">
                     <SelectValue placeholder="Chọn nhóm" />
                   </SelectTrigger>
                   <SelectContent>
@@ -680,7 +680,7 @@ export function Sub2APIConnections() {
                   value={formGroupId}
                   onChange={(event) => setFormGroupId(event.target.value)}
                   placeholder="Để trống thì đồng bộ tất cả nhóm; hoặc nhập ID nhóm / ungrouped"
-                  className="h-11 rounded-xl border-border bg-white"
+                  className="h-11 rounded-xl border-border bg-surface"
                 />
               )}
               {editingServer ? (
@@ -688,7 +688,7 @@ export function Sub2APIConnections() {
                   <span>Sẽ lọc theo ID nhóm khi đồng bộ, để trống = đồng bộ tất cả tài khoản OpenAI OAuth.</span>
                   <Button
                     variant="outline"
-                    className="h-8 rounded-lg border-border bg-white px-2 text-xs text-content-secondary"
+                    className="h-8 rounded-lg border-border bg-surface px-2 text-xs text-content-secondary"
                     onClick={() => void handleFetchGroups()}
                     disabled={isLoadingGroups}
                   >
@@ -747,7 +747,7 @@ export function Sub2APIConnections() {
                   setAccountPage(1);
                 }}
                 placeholder="Tìm kiếm email, gói hoặc tên"
-                className="h-10 rounded-xl border-border bg-white pl-10"
+                className="h-10 rounded-xl border-border bg-surface pl-10"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -758,7 +758,7 @@ export function Sub2APIConnections() {
                   setAccountPage(1);
                 }}
               >
-                <SelectTrigger className="h-10 w-[120px] rounded-xl border-border bg-white">
+                <SelectTrigger className="h-10 w-[120px] rounded-xl border-border bg-surface">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -771,7 +771,7 @@ export function Sub2APIConnections() {
               </Select>
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-border bg-white px-4 text-content"
+                className="h-10 rounded-xl border-border bg-surface px-4 text-content"
                 onClick={() => handleToggleSelectAllFiltered(!allFilteredSelected)}
               >
                 {allFilteredSelected ? "Bỏ chọn tất cả" : "Chọn tất cả kết quả lọc"}
@@ -841,7 +841,7 @@ export function Sub2APIConnections() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                className="h-9 rounded-xl border-border bg-white px-3"
+                className="h-9 rounded-xl border-border bg-surface px-3"
                 onClick={() => setAccountPage((prev) => Math.max(1, prev - 1))}
                 disabled={safeAccountPage <= 1}
               >
@@ -852,7 +852,7 @@ export function Sub2APIConnections() {
               </span>
               <Button
                 variant="outline"
-                className="h-9 rounded-xl border-border bg-white px-3"
+                className="h-9 rounded-xl border-border bg-surface px-3"
                 onClick={() => setAccountPage((prev) => Math.min(accountPageCount, prev + 1))}
                 disabled={safeAccountPage >= accountPageCount}
               >

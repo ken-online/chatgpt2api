@@ -68,6 +68,13 @@ export const SIDEBAR_ORDER = [
   "/settings",
 ] as const;
 
+export function normalizePathname(pathname: string): string {
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    return pathname.slice(0, -1);
+  }
+  return pathname;
+}
+
 export function getRouteMeta(pathname: string): RouteMeta | null {
-  return ROUTE_META[pathname] ?? null;
+  return ROUTE_META[normalizePathname(pathname)] ?? null;
 }

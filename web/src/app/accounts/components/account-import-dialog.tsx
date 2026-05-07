@@ -85,7 +85,7 @@ function MethodCard({
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-2xl border border-border bg-white p-0 text-left transition hover:border-border hover:bg-surface-secondary"
+      className="w-full rounded-2xl border border-border bg-surface p-0 text-left transition hover:border-border hover:bg-surface-secondary"
     >
       <Card className="rounded-2xl border-0 bg-transparent shadow-none">
         <CardContent className="flex items-start gap-4 p-4">
@@ -293,7 +293,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl border-border bg-white"
+                className="rounded-xl border-border bg-surface"
                 onClick={() => txtInputRef.current?.click()}
                 disabled={isSubmitting}
               >
@@ -394,7 +394,7 @@ export function AccountImportDialog({ disabled, onImported }: AccountImportDialo
             onChange={(event) => void handleCpaSelected(event)}
           />
           {pendingCpaImport ? (
-            <div className="rounded-2xl border border-border bg-white p-4 text-sm leading-6 text-content-secondary">
+            <div className="rounded-2xl border border-border bg-surface p-4 text-sm leading-6 text-content-secondary">
               Lần gần nhất đọc được {pendingCpaImport.parsedFileCount} Token
               {pendingCpaImport.errorCount > 0 ? `，ngoài ra còn ${pendingCpaImport.errorCount} file không trích xuất được` : ""}。
             </div>

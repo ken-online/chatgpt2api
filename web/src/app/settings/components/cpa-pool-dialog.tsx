@@ -46,7 +46,7 @@ export function CPAPoolDialog() {
               value={formName}
               onChange={(event) => setFormName(event.target.value)}
               placeholder="Ví dụ: nhóm chính, nhóm dự phòng"
-              className="h-11 rounded-xl border-border bg-white"
+              className="h-11 rounded-xl border-border bg-surface"
             />
           </div>
           <div className="space-y-2">
@@ -58,7 +58,7 @@ export function CPAPoolDialog() {
               value={formBaseUrl}
               onChange={(event) => setFormBaseUrl(event.target.value)}
               placeholder="http://your-cpa-host:8317"
-              className="h-11 rounded-xl border-border bg-white"
+              className="h-11 rounded-xl border-border bg-surface"
             />
           </div>
           <div className="space-y-2">
@@ -72,7 +72,7 @@ export function CPAPoolDialog() {
                 value={formSecretKey}
                 onChange={(event) => setFormSecretKey(event.target.value)}
                 placeholder={editingPool ? "Để trống sẽ không sửa khóa" : "Khóa quản trị CPA"}
-                className="h-11 rounded-xl border-border bg-white pr-10"
+                className="h-11 rounded-xl border-border bg-surface pr-10"
               />
               <button
                 type="button"

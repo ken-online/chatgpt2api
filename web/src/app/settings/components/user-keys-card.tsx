@@ -173,7 +173,7 @@ export function UserKeysCard() {
 
   return (
     <>
-      <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+      <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
         <CardContent className="space-y-6 p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -199,7 +199,7 @@ export function UserKeysCard() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-9 rounded-xl border-emerald-200 bg-white px-4 text-emerald-700"
+                  className="h-9 rounded-xl border-emerald-200 bg-surface px-4 text-emerald-700"
                   onClick={() => void handleCopy(revealedKey)}
                 >
                   <Copy className="size-4" />
@@ -222,7 +222,7 @@ export function UserKeysCard() {
               {items.map((item) => {
                 const isPending = pendingIds.has(item.id);
                 return (
-                  <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-4 md:flex-row md:items-center md:justify-between">
+                  <div key={item.id} className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="truncate text-sm font-medium text-content">{item.name}</div>
@@ -240,7 +240,7 @@ export function UserKeysCard() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-9 rounded-xl border-border bg-white px-4 text-content"
+                        className="h-9 rounded-xl border-border bg-surface px-4 text-content"
                         onClick={() => openEditDialog(item)}
                         disabled={isPending}
                       >
@@ -250,7 +250,7 @@ export function UserKeysCard() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-9 rounded-xl border-border bg-white px-4 text-content"
+                        className="h-9 rounded-xl border-border bg-surface px-4 text-content"
                         onClick={() => void handleToggle(item)}
                         disabled={isPending}
                       >
@@ -266,7 +266,7 @@ export function UserKeysCard() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-9 rounded-xl border-rose-200 bg-white px-4 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                        className="h-9 rounded-xl border-rose-200 bg-surface px-4 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                         onClick={() => setDeletingItem(item)}
                         disabled={isPending}
                       >
@@ -296,7 +296,7 @@ export function UserKeysCard() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Ví dụ: bạn thiết kế A, tài khoản tạm thời vận hành"
-              className="h-11 rounded-xl border-border bg-white"
+              className="h-11 rounded-xl border-border bg-surface"
             />
           </div>
           <DialogFooter>
@@ -376,7 +376,7 @@ export function UserKeysCard() {
                 value={editName}
                 onChange={(event) => setEditName(event.target.value)}
                 placeholder="Ví dụ: bạn thiết kế A, tài khoản tạm thời vận hành"
-                className="h-11 rounded-xl border-border bg-white"
+                className="h-11 rounded-xl border-border bg-surface"
               />
             </div>
             <div className="space-y-2">
@@ -385,7 +385,7 @@ export function UserKeysCard() {
                 value={editKey}
                 onChange={(event) => setEditKey(event.target.value)}
                 placeholder="Ví dụ: sk-your-custom-user-key"
-                className="h-11 rounded-xl border-border bg-white font-mono"
+                className="h-11 rounded-xl border-border bg-surface font-mono"
               />
               <p className="text-xs leading-5 text-content-tertiary">
                 Sau khi lưu, khoá cũ sẽ lập tức vô hiệu hóa và khoá mới có hiệu lực. Hệ thống vẫn chỉ lưu trữ hàm băm và sẽ không hiển thị lại khoá hiện tại.

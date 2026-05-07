@@ -15,7 +15,11 @@ edit
 
 docker-compose-local.yml
 
-.claude/settings.local.json
+# Claude Code local files
+.claude/
+
+# Code review graph cache
+.code-review-graph/
 
 # Environment variables
 .env

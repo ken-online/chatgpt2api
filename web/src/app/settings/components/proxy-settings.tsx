@@ -102,7 +102,7 @@ export function ProxySettingsCard() {
   };
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
       <CardContent className="space-y-6 p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -124,7 +124,7 @@ export function ProxySettingsCard() {
           </div>
         ) : (
           <div className="space-y-4">
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-white px-4 py-3">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-surface px-4 py-3">
               <input
                 type="checkbox"
                 className="mt-1 size-4 rounded border-border text-content focus:ring-primary-500"
@@ -148,7 +148,7 @@ export function ProxySettingsCard() {
                 value={formUrl}
                 onChange={(event) => setFormUrl(event.target.value)}
                 placeholder="http://user:pass@host:port hoặc socks5://host:port"
-                className="h-11 rounded-xl border-border bg-white font-mono text-xs"
+                className="h-11 rounded-xl border-border bg-surface font-mono text-xs"
               />
               <div className="text-xs text-content-tertiary">
                 Hỗ trợ <code className="font-mono">http / https / socks4 / socks5 / socks5h</code>.
@@ -184,7 +184,7 @@ export function ProxySettingsCard() {
               </Button>
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-border bg-white px-5 text-content"
+                className="h-10 rounded-xl border-border bg-surface px-5 text-content"
                 onClick={() => void handleTest()}
                 disabled={isTesting}
               >

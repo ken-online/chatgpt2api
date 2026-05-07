@@ -77,12 +77,12 @@ export function ImportBrowserDialog() {
               value={fileQuery}
               onChange={(event) => setFileQuery(event.target.value)}
               placeholder="Tìm kiếm email hoặc tên tệp"
-              className="h-10 rounded-xl border-border bg-white pl-10"
+              className="h-10 rounded-xl border-border bg-surface pl-10"
             />
           </div>
           <div className="flex items-center gap-2">
             <Select value={pageSize} onValueChange={(value) => setPageSize(value as (typeof PAGE_SIZE_OPTIONS)[number])}>
-              <SelectTrigger className="h-10 w-[120px] rounded-xl border-border bg-white">
+              <SelectTrigger className="h-10 w-[120px] rounded-xl border-border bg-surface">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -95,7 +95,7 @@ export function ImportBrowserDialog() {
             </Select>
             <Button
               variant="outline"
-              className="h-10 rounded-xl border-border bg-white px-4 text-content"
+              className="h-10 rounded-xl border-border bg-surface px-4 text-content"
               onClick={() => toggleSelectAllFiltered(!allFilteredSelected)}
             >
               {allFilteredSelected ? "Bỏ chọn tất cả" : "Chọn tất cả kết quả lọc"}
@@ -141,7 +141,7 @@ export function ImportBrowserDialog() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              className="h-9 rounded-xl border-border bg-white px-3"
+              className="h-9 rounded-xl border-border bg-surface px-3"
               onClick={() => setFilePage(Math.max(1, safeFilePage - 1))}
               disabled={safeFilePage <= 1}
             >
@@ -152,7 +152,7 @@ export function ImportBrowserDialog() {
             </span>
             <Button
               variant="outline"
-              className="h-9 rounded-xl border-border bg-white px-3"
+              className="h-9 rounded-xl border-border bg-surface px-3"
               onClick={() => setFilePage(Math.min(filePageCount, safeFilePage + 1))}
               disabled={safeFilePage >= filePageCount}
             >

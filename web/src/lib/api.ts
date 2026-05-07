@@ -718,3 +718,18 @@ export async function testProxy(url?: string) {
     body: { url: url ?? "" },
   });
 }
+
+export async function removeBackground(
+  source: { type: "b64"; b64: string; mime: string } | { type: "url"; url: string },
+  idToken: string,
+  orgId: string,
+) {
+  const imageFields =
+    source.type === "b64"
+      ? { image_b64: source.b64, image_mime: source.mime }
+      : { image_url: source.url };
+  return httpRequest<{ b64_json: string; image_url: string }>("/api/remove-background", {
+    method: "POST",
+    body: { ...imageFields, id_token: idToken, org_id: orgId },
+  });
+}

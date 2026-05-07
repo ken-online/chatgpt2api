@@ -19,7 +19,7 @@ export function CPAPoolsCard() {
   const browseFiles = useSettingsStore((state) => state.browseFiles);
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
       <CardContent className="space-y-6 p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ export function CPAPoolsCard() {
                 : 0;
 
               return (
-                <div key={pool.id} className="flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-3">
+                <div key={pool.id} className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-sm font-medium text-content">{pool.name || pool.base_url}</div>
@@ -97,7 +97,7 @@ export function CPAPoolsCard() {
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
-                      className="h-8 rounded-lg border-border bg-white px-3 text-xs text-content-secondary"
+                      className="h-8 rounded-lg border-border bg-surface px-3 text-xs text-content-secondary"
                       onClick={() => void browseFiles(pool)}
                       disabled={isBusy}
                     >
@@ -113,7 +113,7 @@ export function CPAPoolsCard() {
                   {importJob ? (
                     <div className="space-y-2 rounded-xl bg-surface-secondary px-3 py-3">
                       <div className="text-xs font-medium tracking-[0.16em] text-content-tertiary uppercase">Tác vụ nhập khẩu</div>
-                      <div className="rounded-lg border border-border bg-white px-3 py-3">
+                      <div className="rounded-lg border border-border bg-surface px-3 py-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-content">

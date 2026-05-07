@@ -40,7 +40,7 @@ export function ImageSidebar({
             </Button>
             <Button
               variant="outline"
-              className="h-10 rounded-xl border-border bg-white/85 px-3 text-content-secondary hover:bg-white"
+              className="h-10 rounded-xl border-border bg-surface/85 px-3 text-content-secondary hover:bg-surface"
               onClick={() => void onClearHistory()}
               disabled={conversations.length === 0}
             >
@@ -51,8 +51,8 @@ export function ImageSidebar({
 
         <div
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto [scrollbar-color:rgba(120,113,108,.45)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-400/45 [&::-webkit-scrollbar-track]:bg-transparent",
-            hideActionButtons ? "space-y-1 pr-0" : "space-y-2 pr-1",
+            "min-h-0 flex-1 overflow-y-auto flex flex-col gap-1 [scrollbar-color:rgba(120,113,108,.45)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-400/45 [&::-webkit-scrollbar-track]:bg-transparent",
+            hideActionButtons ? "pr-0" : "pr-1",
           )}
         >
           {isLoadingHistory ? (
@@ -66,15 +66,24 @@ export function ImageSidebar({
             conversations.map((conversation) => {
               const active = conversation.id === selectedConversationId;
               const stats = getImageConversationStats(conversation);
+              const isRunning = stats.running > 0;
+              const isQueued = !isRunning && stats.queued > 0;
+              const isProcessing = isRunning || isQueued;
+
               return (
                 <div
                   key={conversation.id}
                   className={cn(
-                    "group relative w-full border-l-2 text-left transition",
-                    hideActionButtons ? "px-4 py-3.5" : "px-3 py-2 sm:py-3",
-                    active
-                      ? "border-primary-600 bg-black/[0.035] text-content"
-                      : "border-transparent text-content hover:border-border hover:bg-white/40",
+                    "group relative w-full rounded-xl text-left transition-colors",
+                    hideActionButtons ? "px-4 py-3.5" : "px-3 py-2.5",
+                    // background + ring
+                    isRunning
+                      ? "bg-blue-500/[0.10] ring-1 ring-blue-500/30 hover:bg-blue-500/[0.15]"
+                      : isQueued
+                      ? "bg-amber-500/[0.09] ring-1 ring-amber-500/30 hover:bg-amber-500/[0.13]"
+                      : active
+                      ? "bg-primary-600/[0.13] ring-1 ring-primary-500/40 hover:bg-primary-600/[0.17]"
+                      : "bg-surface-secondary/30 ring-1 ring-border/20 hover:bg-surface-secondary/55",
                   )}
                 >
                   <button
@@ -82,19 +91,30 @@ export function ImageSidebar({
                     onClick={() => onSelectConversation(conversation.id)}
                     className={cn("block w-full text-left", hideActionButtons ? "pr-0" : "pr-8")}
                   >
-                    <div className={cn("truncate font-semibold", hideActionButtons ? "text-base" : "text-sm")}>
-                      <span className="truncate">{conversation.title}</span>
+                    <div
+                      className={cn(
+                        "line-clamp-2 break-words font-semibold",
+                        hideActionButtons ? "text-base" : "text-sm",
+                        active || isProcessing ? "text-content" : "text-content",
+                      )}
+                    >
+                      {conversation.title}
                     </div>
-                    <div className={cn("mt-1 text-xs", active ? "text-content-tertiary" : "text-content-tertiary")}>
+                    <div className="mt-1 text-xs text-content-tertiary">
                       {conversation.turns.length} lần · {formatConversationTime(conversation.updatedAt)}
                     </div>
-                    {stats.running > 0 || stats.queued > 0 ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                        {stats.running > 0 ? (
-                          <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-600">Đang xử lý {stats.running}</span>
+                    {isProcessing ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        {isRunning ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/20 px-2 py-0.5 text-blue-400">
+                            <LoaderCircle className="size-3 animate-spin" />
+                            Đang xử lý {stats.running}
+                          </span>
                         ) : null}
                         {stats.queued > 0 ? (
-                          <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Chờ xử lý {stats.queued}</span>
+                          <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-amber-400">
+                            Chờ xử lý {stats.queued}
+                          </span>
                         ) : null}
                       </div>
                     ) : null}

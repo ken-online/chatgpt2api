@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ImageComposer } from "@/app/image/components/image-composer";
 import { ImageResults, type ImageLightboxItem } from "@/app/image/components/image-results";
 import { ImageSidebar } from "@/app/image/components/image-sidebar";
+import { usePageHeaderActions } from "@/components/app-shell/page-header-context";
 import { ImageLightbox } from "@/components/image-lightbox";
 import {
   Dialog,
@@ -16,7 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   createImageEditTask,
   createImageGenerationTask,
@@ -51,11 +54,7 @@ function clampImageCount(value: string) {
 const activeConversationQueueIds = new Set<string>();
 
 function buildConversationTitle(prompt: string) {
-  const trimmed = prompt.trim();
-  if (trimmed.length <= 12) {
-    return trimmed;
-  }
-  return `${trimmed.slice(0, 12)}...`;
+  return prompt.trim();
 }
 
 function formatConversationTime(value: string) {
@@ -198,7 +197,7 @@ function pickFallbackConversationId(conversations: ImageConversation[]) {
 }
 
 function sortImageConversations(conversations: ImageConversation[]) {
-  return [...conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return [...conversations].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 function deriveTurnStatus(turn: ImageTurn): Pick<ImageTurn, "status" | "error"> {
@@ -337,6 +336,7 @@ async function recoverConversationHistory(items: ImageConversation[]) {
 
 
 function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
+  const { setActions } = usePageHeaderActions();
   const didLoadQuotaRef = useRef(false);
   const conversationsRef = useRef<ImageConversation[]>([]);
   const resultsViewportRef = useRef<HTMLDivElement>(null);
@@ -356,6 +356,11 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
   const [lightboxImages, setLightboxImages] = useState<ImageLightboxItem[]>([]);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxTurnId, setLightboxTurnId] = useState<string | null>(null);
+  const [turnRevisions, setTurnRevisions] = useState<Record<string, StoredImage[][]>>({});
+  const [turnViewSlot, setTurnViewSlot] = useState<Record<string, number>>({});
+  const turnRevisionsRef = useRef<Record<string, StoredImage[][]>>({});
+  const [removeBgResults, setRemoveBgResults] = useState<Record<string, string>>({});
   const [deleteConfirm, setDeleteConfirm] = useState<
     | { type: "one"; id: string }
     | { type: "prompt"; conversationId: string; turnId: string }
@@ -420,6 +425,21 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
 
         conversationsRef.current = normalizedItems;
         setConversations(normalizedItems);
+
+        // Populate turnRevisions từ revisions đã lưu trong mỗi turn
+        const storedRevisions: Record<string, StoredImage[][]> = {};
+        for (const conv of normalizedItems) {
+          for (const turn of conv.turns) {
+            if (turn.revisions && turn.revisions.length > 0) {
+              storedRevisions[turn.id] = turn.revisions;
+            }
+          }
+        }
+        if (Object.keys(storedRevisions).length > 0) {
+          turnRevisionsRef.current = storedRevisions;
+          setTurnRevisions(storedRevisions);
+        }
+
         const storedConversationId =
           typeof window !== "undefined" ? window.localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY) : null;
         const nextSelectedConversationId =
@@ -472,17 +492,6 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       window.removeEventListener("focus", handleFocus);
     };
   }, [isAdmin, loadQuota]);
-
-  useEffect(() => {
-    if (!selectedConversation) {
-      return;
-    }
-
-    resultsViewportRef.current?.scrollTo({
-      top: resultsViewportRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [selectedConversation?.updatedAt, selectedConversation?.turns.length, selectedConversation]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -564,11 +573,11 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     clearComposerInputs();
   }, [clearComposerInputs]);
 
-  const handleCreateDraft = () => {
+  const handleCreateDraft = useCallback(() => {
     setSelectedConversationId(null);
     resetComposer();
     textareaRef.current?.focus();
-  };
+  }, [resetComposer]);
 
   const handleDeleteConversation = async (id: string) => {
     const nextConversations = conversations.filter((item) => item.id !== id);
@@ -656,10 +665,23 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     setDeleteConfirm({ type: "results", conversationId, turnId });
   };
 
-  const openClearHistoryConfirm = () => {
+  const openClearHistoryConfirm = useCallback(() => {
     setIsHistoryOpen(false);
     setDeleteConfirm({ type: "all" });
-  };
+  }, []);
+
+  useEffect(() => {
+    setActions(
+      <Button
+        className="h-10 rounded-xl bg-primary-600 px-4 text-sm text-white hover:bg-primary-700"
+        onClick={handleCreateDraft}
+      >
+        <Plus className="size-4" />
+        Tạo mới
+      </Button>,
+    );
+    return () => setActions(null);
+  }, [handleCreateDraft, setActions]);
 
   const handleConfirmDelete = async () => {
     const target = deleteConfirm;
@@ -776,15 +798,62 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     toast.success("Đã tái sử dụng cấu hình Prompt này");
   }, []);
 
-  const openLightbox = useCallback((images: ImageLightboxItem[], index: number) => {
-    if (images.length === 0) {
+  const handleReuseTurnConfigAsNew = useCallback(async (conversationId: string, turnId: string) => {
+    const conversation = conversationsRef.current.find((item) => item.id === conversationId);
+    const turn = conversation?.turns.find((item) => item.id === turnId);
+    if (!conversation || !turn || !turn.prompt.trim()) {
       return;
     }
 
+    setSelectedConversationId(null);
+    setImagePrompt(turn.prompt);
+    setImageCount(String(Math.max(1, turn.count || turn.images.length || 1)));
+    setImageSize(turn.size);
+    setReferenceImages(turn.referenceImages);
+    setReferenceImageFiles(
+      turn.referenceImages.map((image) => dataUrlToFile(image.dataUrl, image.name, image.type)),
+    );
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    textareaRef.current?.focus();
+    toast.success("Đã tái sử dụng cấu hình cho cuộc hội thoại mới");
+  }, []);
+
+  const handleTurnViewSlotChange = useCallback((turnId: string, slot: number) => {
+    setTurnViewSlot((prev) => ({ ...prev, [turnId]: slot }));
+  }, []);
+
+  const openLightbox = useCallback((images: ImageLightboxItem[], index: number, turnId?: string) => {
+    if (images.length === 0) return;
     setLightboxImages(images);
     setLightboxIndex(Math.max(0, Math.min(index, images.length - 1)));
+    setLightboxTurnId(turnId ?? null);
     setLightboxOpen(true);
   }, []);
+
+  const handleLightboxRevisionChange = useCallback((newSlot: number) => {
+    const turnId = lightboxTurnId;
+    if (!turnId) return;
+    handleTurnViewSlotChange(turnId, newSlot);
+
+    // Recompute lightbox images cho slot mới
+    const conv = conversationsRef.current.find((c) => c.id === selectedConversationId);
+    const turn = conv?.turns.find((t) => t.id === turnId);
+    if (!turn) return;
+    const revisions = turnRevisionsRef.current[turnId] || [];
+    const totalSlots = revisions.length + 1;
+    const displayImages = newSlot >= totalSlots - 1 ? turn.images : (revisions[newSlot] ?? turn.images);
+    const newImages = displayImages.flatMap((img) => {
+      if (img.status !== "success") return [];
+      const src = img.b64_json ? `data:image/png;base64,${img.b64_json}` : (img.url || "");
+      return src ? [{ id: img.id, src }] : [];
+    });
+    if (newImages.length > 0) {
+      setLightboxImages(newImages);
+      setLightboxIndex(0);
+    }
+  }, [lightboxTurnId, selectedConversationId, handleTurnViewSlotChange]);
 
   const createLoadingImages = (turnId: string, count: number) =>
     Array.from({ length: count }, (_, index) => {
@@ -965,6 +1034,16 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
         return;
       }
 
+      // Lưu ảnh hiện tại vào revisions nếu có ảnh thành công
+      const hasSuccess = !sourceTurn.resultsDeleted && sourceTurn.images.some((img) => img.status === "success");
+      const prevRevisions = turnRevisionsRef.current[turnId] || [];
+      const nextRevisions = hasSuccess ? [...prevRevisions, sourceTurn.images] : prevRevisions;
+      if (hasSuccess) {
+        turnRevisionsRef.current = { ...turnRevisionsRef.current, [turnId]: nextRevisions };
+        setTurnRevisions({ ...turnRevisionsRef.current });
+        setTurnViewSlot((prevSlot) => ({ ...prevSlot, [turnId]: nextRevisions.length }));
+      }
+
       const now = new Date().toISOString();
       const count = Math.max(1, sourceTurn.count || sourceTurn.images.length || 1);
       const newImages = Array.from({ length: count }, () => {
@@ -976,7 +1055,13 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
         updatedAt: now,
         turns: conversation.turns.map((turn) =>
           turn.id === turnId
-            ? { ...turn, images: newImages, status: "queued" as const, error: undefined }
+            ? {
+                ...turn,
+                images: newImages,
+                status: "queued" as const,
+                error: undefined,
+                revisions: nextRevisions.length > 0 ? nextRevisions : undefined,
+              }
             : turn,
         ),
       };
@@ -1110,22 +1195,44 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      <section className="mx-auto grid h-[calc(100dvh-6.5rem)] min-h-0 w-full max-w-[1380px] grid-cols-1 gap-2 overflow-hidden px-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:h-[calc(100dvh-5.25rem)] sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <div className="hidden h-full min-h-0 border-r border-border/70 pr-3 lg:block">
-          <ImageSidebar
-            conversations={conversations}
-            isLoadingHistory={isLoadingHistory}
-            selectedConversationId={selectedConversationId}
-            onCreateDraft={handleCreateDraft}
-            onClearHistory={openClearHistoryConfirm}
-            onSelectConversation={setSelectedConversationId}
-            onDeleteConversation={openDeleteConversationConfirm}
-            formatConversationTime={formatConversationTime}
-          />
-        </div>
+      <section className="grid h-[calc(100dvh-7rem)] min-h-0 w-full grid-cols-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <Card className="hidden lg:flex flex-col overflow-hidden rounded-2xl border-border/80 bg-surface shadow-sm p-0">
+          <div className="flex items-center justify-between border-b border-border bg-surface-secondary/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <History className="size-4 text-content-tertiary" />
+              <span className="text-sm font-semibold text-content">Lịch sử</span>
+              <Badge variant="secondary" className="rounded-md bg-surface-tertiary px-1.5 py-0 text-[11px] text-content">
+                {conversations.length}
+              </Badge>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-md text-content-tertiary hover:bg-rose-50 hover:text-rose-600"
+              onClick={openClearHistoryConfirm}
+              disabled={conversations.length === 0}
+              title="Xoá hết lịch sử"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+            <ImageSidebar
+              conversations={conversations}
+              isLoadingHistory={isLoadingHistory}
+              selectedConversationId={selectedConversationId}
+              onCreateDraft={handleCreateDraft}
+              onClearHistory={openClearHistoryConfirm}
+              onSelectConversation={setSelectedConversationId}
+              onDeleteConversation={openDeleteConversationConfirm}
+              formatConversationTime={formatConversationTime}
+              hideActionButtons
+            />
+          </div>
+        </Card>
 
         <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-          <DialogContent className="flex h-[min(82dvh,760px)] w-[92vw] max-w-[460px] flex-col overflow-hidden rounded-[32px] border-white/80 bg-white p-0 shadow-[0_32px_110px_-38px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
+          <DialogContent className="flex h-[min(82dvh,760px)] w-[92vw] max-w-[460px] flex-col overflow-hidden rounded-[32px] border-border/80 bg-surface p-0 shadow-[0_32px_110px_-38px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
             <DialogHeader className="px-6 pt-7 pb-4 sm:px-8">
               <DialogTitle className="flex items-center gap-2 text-xl font-bold tracking-tight">
                 <History className="size-5" />
@@ -1157,26 +1264,19 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           </DialogContent>
         </Dialog>
 
-        <div className="flex min-h-0 flex-col gap-2 sm:gap-4">
-          <div className="flex items-center justify-between gap-2 px-1 lg:hidden">
+        <Card className="flex min-h-0 flex-col overflow-hidden rounded-2xl border-border/80 bg-surface shadow-sm p-0">
+          <div className="flex items-center justify-between gap-2 border-b border-border bg-surface-secondary/40 px-3 py-2 lg:hidden">
             <Button
               variant="outline"
-              className="h-10 flex-1 rounded-2xl border-border bg-surface text-content shadow-sm"
+              className="h-9 flex-1 rounded-lg border-border bg-surface text-sm text-content"
               onClick={() => setIsHistoryOpen(true)}
             >
               <History className="mr-2 size-4" />
               Lịch sử ({conversations.length})
             </Button>
             <Button
-              className="h-10 rounded-2xl bg-primary-600 text-white shadow-sm"
-              onClick={handleCreateDraft}
-            >
-              <Plus className="size-4" />
-              Tạo mới
-            </Button>
-            <Button
               variant="outline"
-              className="h-10 rounded-2xl border-border bg-white/85 px-3 text-content-secondary shadow-sm"
+              className="h-9 rounded-lg border-border bg-surface px-3 text-content-secondary"
               onClick={openClearHistoryConfirm}
               disabled={conversations.length === 0}
             >
@@ -1186,7 +1286,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
 
           <div
             ref={resultsViewportRef}
-            className="hide-scrollbar min-h-0 flex-1 overscroll-contain overflow-y-auto px-1 py-2 sm:px-4 sm:py-4"
+            className="hide-scrollbar min-h-0 flex-1 overscroll-contain overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
           >
             <ImageResults
               selectedConversation={selectedConversation}
@@ -1195,30 +1295,51 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
               onDeletePrompt={openDeletePromptConfirm}
               onDeleteResults={openDeleteResultsConfirm}
               onReuseTurnConfig={handleReuseTurnConfig}
+              onReuseTurnConfigAsNew={handleReuseTurnConfigAsNew}
               onRegenerateTurn={handleRegenerateTurn}
               onRetryImage={handleRetryImage}
               formatConversationTime={formatConversationTime}
+              turnRevisions={turnRevisions}
+              turnViewSlot={turnViewSlot}
+              onTurnViewSlotChange={handleTurnViewSlotChange}
+              removeBgResults={removeBgResults}
+              onRemoveBgResult={(imageId, dataUrl, persistUrl, conversationId, turnId) => {
+                setRemoveBgResults((prev) => ({ ...prev, [imageId]: dataUrl }));
+                const conv = conversationsRef.current.find((c) => c.id === conversationId);
+                if (!conv) return;
+                const nextConv = {
+                  ...conv,
+                  turns: conv.turns.map((t) =>
+                    t.id === turnId
+                      ? { ...t, images: t.images.map((img) => img.id === imageId ? { ...img, remove_bg_url: persistUrl } : img) }
+                      : t,
+                  ),
+                };
+                void persistConversation(nextConv);
+              }}
             />
           </div>
 
-          <ImageComposer
-            prompt={imagePrompt}
-            imageCount={imageCount}
-            imageSize={imageSize}
-            availableQuota={availableQuota}
-            activeTaskCount={activeTaskCount}
-            referenceImages={referenceImages}
-            textareaRef={textareaRef}
-            fileInputRef={fileInputRef}
-            onPromptChange={setImagePrompt}
-            onImageCountChange={(value) => setImageCount(value ? clampImageCount(value) : "")}
-            onImageSizeChange={setImageSize}
-            onSubmit={handleSubmit}
-            onPickReferenceImage={() => fileInputRef.current?.click()}
-            onReferenceImageChange={handleReferenceImageChange}
-            onRemoveReferenceImage={handleRemoveReferenceImage}
-          />
-        </div>
+          <div className="border-t border-border bg-surface-secondary/40 px-3 py-3 sm:px-4 sm:py-4">
+            <ImageComposer
+              prompt={imagePrompt}
+              imageCount={imageCount}
+              imageSize={imageSize}
+              availableQuota={availableQuota}
+              activeTaskCount={activeTaskCount}
+              referenceImages={referenceImages}
+              textareaRef={textareaRef}
+              fileInputRef={fileInputRef}
+              onPromptChange={setImagePrompt}
+              onImageCountChange={(value) => setImageCount(value ? clampImageCount(value) : "")}
+              onImageSizeChange={setImageSize}
+              onSubmit={handleSubmit}
+              onPickReferenceImage={() => fileInputRef.current?.click()}
+              onReferenceImageChange={handleReferenceImageChange}
+              onRemoveReferenceImage={handleRemoveReferenceImage}
+            />
+          </div>
+        </Card>
       </section>
 
       <ImageLightbox
@@ -1227,6 +1348,19 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
         onIndexChange={setLightboxIndex}
+        revisionNav={(() => {
+          if (!lightboxTurnId) return undefined;
+          const revisions = turnRevisionsRef.current[lightboxTurnId] || [];
+          const total = revisions.length + 1;
+          if (total <= 1) return undefined;
+          const slot = turnViewSlot[lightboxTurnId] ?? total - 1;
+          return {
+            slot,
+            total,
+            onPrev: () => handleLightboxRevisionChange(slot - 1),
+            onNext: () => handleLightboxRevisionChange(slot + 1),
+          };
+        })()}
       />
 
       {deleteConfirm ? (

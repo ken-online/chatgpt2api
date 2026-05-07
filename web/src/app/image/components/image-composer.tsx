@@ -1,12 +1,13 @@
 "use client";
-import { ArrowUp, Check, ChevronDown, ImagePlus, LoaderCircle, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type RefObject } from "react";
+import { ArrowUp, ImagePlus, LoaderCircle, X } from "lucide-react";
+import { useMemo, useState, type ClipboardEvent, type RefObject } from "react";
 
 import { ImageLightbox } from "@/components/image-lightbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+
+import { ImageSizeSelect } from "./image-size-select";
 
 type ImageComposerProps = {
   prompt: string;
@@ -45,36 +46,10 @@ export function ImageComposer({
 }: ImageComposerProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [isSizeMenuOpen, setIsSizeMenuOpen] = useState(false);
-  const sizeMenuRef = useRef<HTMLDivElement>(null);
   const lightboxImages = useMemo(
     () => referenceImages.map((image, index) => ({ id: `${image.name}-${index}`, src: image.dataUrl })),
     [referenceImages],
   );
-  const imageSizeOptions = [
-    { value: "", label: "Không chỉ định" },
-    { value: "1:1", label: "1:1 (Hình vuông)" },
-    { value: "16:9", label: "16:9 (Ngang)" },
-    { value: "4:3", label: "4:3 (Ngang)" },
-    { value: "3:4", label: "3:4 (Dọc)" },
-    { value: "9:16", label: "9:16 (Dọc)" },
-  ];
-  const imageSizeLabel = imageSizeOptions.find((option) => option.value === imageSize)?.label || "Không chỉ định";
-
-  useEffect(() => {
-    if (!isSizeMenuOpen) {
-      return;
-    }
-    const handlePointerDown = (event: MouseEvent) => {
-      if (!sizeMenuRef.current?.contains(event.target as Node)) {
-        setIsSizeMenuOpen(false);
-      }
-    };
-    window.addEventListener("mousedown", handlePointerDown);
-    return () => {
-      window.removeEventListener("mousedown", handlePointerDown);
-    };
-  }, [isSizeMenuOpen]);
 
   const handleTextareaPaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const imageFiles = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith("image/"));
@@ -87,61 +62,60 @@ export function ImageComposer({
   };
 
   return (
-    <div className="shrink-0 flex justify-center px-1 sm:px-0">
-      <div style={{ width: "min(980px, 100%)" }}>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(event) => {
-            void onReferenceImageChange(Array.from(event.target.files || []));
+    <div className="w-full">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(event) => {
+          void onReferenceImageChange(Array.from(event.target.files || []));
+        }}
+      />
+
+      {referenceImages.length > 0 ? (
+        <div className="mb-2 flex gap-2 overflow-x-auto pb-1 sm:mb-3 sm:flex-wrap sm:overflow-visible sm:pb-0">
+          {referenceImages.map((image, index) => (
+            <div key={`${image.name}-${index}`} className="relative size-14 shrink-0 sm:size-16">
+              <button
+                type="button"
+                onClick={() => {
+                  setLightboxIndex(index);
+                  setLightboxOpen(true);
+                }}
+                className="group size-14 overflow-hidden rounded-xl border border-border bg-surface-secondary transition hover:border-border sm:size-16"
+                aria-label={`Xem trước ảnh tham chiếu ${image.name || index + 1}`}
+              >
+                <img
+                  src={image.dataUrl}
+                  alt={image.name || `Ảnh tham chiếu ${index + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              </button>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRemoveReferenceImage(index);
+                }}
+                className="absolute -right-1 -top-1 inline-flex size-5 items-center justify-center rounded-full border border-border bg-surface text-content-tertiary transition hover:border-border hover:text-content"
+                aria-label={`Xoá ảnh tham chiếu ${image.name || index + 1}`}
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="overflow-hidden rounded-xl border border-border bg-surface">
+        <div
+          className="relative cursor-text"
+          onClick={() => {
+            textareaRef.current?.focus();
           }}
-        />
-
-        {referenceImages.length > 0 ? (
-          <div className="mb-2 flex gap-2 overflow-x-auto px-1 pb-1 sm:mb-3 sm:flex-wrap sm:overflow-visible sm:pb-0">
-            {referenceImages.map((image, index) => (
-              <div key={`${image.name}-${index}`} className="relative size-14 shrink-0 sm:size-16">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLightboxIndex(index);
-                    setLightboxOpen(true);
-                  }}
-                  className="group size-14 overflow-hidden rounded-2xl border border-border bg-surface-secondary transition hover:border-border sm:size-16"
-                  aria-label={`Xem trước ảnh tham chiếu ${image.name || index + 1}`}
-                >
-                  <img
-                    src={image.dataUrl}
-                    alt={image.name || `Ảnh tham chiếu ${index + 1}`}
-                    className="h-full w-full object-cover"
-                  />
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onRemoveReferenceImage(index);
-                  }}
-                  className="absolute -right-1 -top-1 inline-flex size-5 items-center justify-center rounded-full border border-border bg-white text-content-tertiary transition hover:border-border hover:text-content"
-                  aria-label={`Xoá ảnh tham chiếu ${image.name || index + 1}`}
-                >
-                  <X className="size-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="overflow-hidden rounded-[24px] border border-border bg-white shadow-[0_14px_60px_-42px_rgba(15,23,42,0.45)] sm:rounded-[32px] sm:shadow-none">
-          <div
-            className="relative cursor-text"
-            onClick={() => {
-              textareaRef.current?.focus();
-            }}
-          >
+        >
             <ImageLightbox
               images={lightboxImages}
               currentIndex={lightboxIndex}
@@ -165,31 +139,31 @@ export function ImageComposer({
                   void onSubmit();
                 }
               }}
-              className="min-h-[82px] resize-none rounded-[24px] border-0 bg-transparent px-4 pt-4 pb-2 text-[15px] leading-6 text-content shadow-none placeholder:text-content-tertiary focus-visible:ring-0 sm:min-h-[148px] sm:rounded-[32px] sm:px-6 sm:pt-6 sm:pb-20 sm:leading-7"
+              className="min-h-[80px] resize-none rounded-none border-0 bg-transparent px-4 pt-3 pb-2 text-[15px] leading-6 text-content shadow-none placeholder:text-content-tertiary focus-visible:ring-0 sm:min-h-[100px] sm:px-5 sm:pt-4 sm:leading-7"
             />
 
-            <div className="rounded-b-[24px] border-t border-border bg-white px-3 pb-3 pt-2 sm:absolute sm:inset-x-0 sm:bottom-0 sm:rounded-b-none sm:border-t-0 sm:bg-gradient-to-t sm:from-white sm:via-white/95 sm:to-transparent sm:px-6 sm:pb-4 sm:pt-6" onClick={(event) => event.stopPropagation()}>
+            <div className="border-t border-border bg-surface-secondary/40 px-3 py-2.5 sm:px-4 sm:py-3" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-end justify-between gap-2 sm:gap-3">
                 <div className="hide-scrollbar flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto pb-0.5 sm:flex-wrap sm:gap-3 sm:overflow-visible sm:pb-0">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-9 shrink-0 rounded-full border-border bg-white px-3 text-xs font-medium text-content shadow-none sm:h-10 sm:px-4 sm:text-sm"
+                    className="h-9 shrink-0 rounded-lg border-border bg-surface px-3 text-xs font-medium text-content shadow-none sm:text-sm"
                     onClick={onPickReferenceImage}
                   >
                     <ImagePlus className="size-3.5 sm:size-4" />
                     <span>{referenceImages.length > 0 ? "Thêm ảnh tham chiếu" : "Tải lên"}</span>
                   </Button>
-                  <div className="shrink-0 rounded-full bg-surface-secondary px-2 py-1 text-[10px] font-medium text-content-secondary sm:px-3 sm:py-2 sm:text-xs">
-                    <span className="hidden sm:inline">Chỉ tiêu còn lại </span>{availableQuota}
+                  <div className="shrink-0 rounded-md bg-surface-tertiary px-2 py-1.5 text-[11px] font-medium text-content-secondary sm:text-xs">
+                    <span className="hidden sm:inline">Còn lại </span>{availableQuota}
                   </div>
                   {activeTaskCount > 0 && (
-                    <div className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700 sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs">
+                    <div className="flex shrink-0 items-center gap-1 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-700 sm:gap-1.5 sm:text-xs">
                       <LoaderCircle className="size-3 animate-spin" />
-                      {activeTaskCount}<span className="hidden sm:inline"> công việc đang xử lý</span>
+                      {activeTaskCount}<span className="hidden sm:inline"> đang xử lý</span>
                     </div>
                   )}
-                  <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-2 py-0.5 sm:h-auto sm:gap-2 sm:px-3 sm:py-1">
+                  <div className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-2 sm:gap-2 sm:px-3">
                     <span className="text-[11px] font-medium text-content sm:text-sm">Số lượng</span>
                     <Input
                       type="number"
@@ -199,55 +173,21 @@ export function ImageComposer({
                       step="1"
                       value={imageCount}
                       onChange={(event) => onImageCountChange(event.target.value)}
-                      className="h-7 w-[40px] border-0 bg-transparent px-0 text-center text-xs font-medium text-content shadow-none focus-visible:ring-0 sm:h-8 sm:w-[64px] sm:text-sm"
+                      className="h-7 w-[40px] border-0 bg-transparent px-0 text-center text-xs font-medium text-content shadow-none focus-visible:ring-0 sm:w-[60px] sm:text-sm"
                     />
                   </div>
-                  <div
-                    ref={sizeMenuRef}
-                    className="relative flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-white px-2 py-0.5 text-[11px] sm:h-auto sm:gap-2 sm:px-3 sm:py-1 sm:text-[13px]"
-                  >
-                    <span className="font-medium text-content sm:text-sm">Tỷ lệ</span>
-                    <button
-                      type="button"
-                      className="flex h-7 w-[78px] items-center justify-between bg-transparent text-left text-xs font-bold text-content min-[390px]:w-[96px] sm:h-8 sm:w-[132px]"
-                      onClick={() => setIsSizeMenuOpen((open) => !open)}
-                    >
-                      <span className="truncate">{imageSizeLabel}</span>
-                      <ChevronDown className={cn("size-4 shrink-0 opacity-60 transition", isSizeMenuOpen && "rotate-180")} />
-                    </button>
-                    {isSizeMenuOpen ? (
-                      <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-[80] max-h-[45dvh] overflow-y-auto rounded-3xl border border-white/80 bg-white p-2 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)] sm:absolute sm:inset-x-auto sm:bottom-[calc(100%+10px)] sm:left-0 sm:w-[186px]">
-                        {imageSizeOptions.map((option) => {
-                          const active = option.value === imageSize;
-                          return (
-                            <button
-                              key={option.label}
-                              type="button"
-                              className={cn(
-                                "flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-content transition hover:bg-surface-secondary",
-                                active && "bg-surface-secondary font-medium text-content",
-                              )}
-                              onClick={() => {
-                                onImageSizeChange(option.value);
-                                setIsSizeMenuOpen(false);
-                              }}
-                            >
-                              <span>{option.label}</span>
-                              {active ? <Check className="size-4" /> : null}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-
+                  <ImageSizeSelect
+                    value={imageSize}
+                    onChange={onImageSizeChange}
+                    variant="composer"
+                  />
                 </div>
 
                 <button
                   type="button"
                   onClick={() => void onSubmit()}
                   disabled={!prompt.trim()}
-                  className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-surface-tertiary sm:size-11"
+                  className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-surface-tertiary sm:size-10"
                   aria-label={referenceImages.length > 0 ? "Chỉnh sửa ảnh" : "Tạo ảnh"}
                 >
                   <ArrowUp className="size-3.5 sm:size-4" />
@@ -257,7 +197,5 @@ export function ImageComposer({
           </div>
         </div>
       </div>
-    </div>
   );
 }
-

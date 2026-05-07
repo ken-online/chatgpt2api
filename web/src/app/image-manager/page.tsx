@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Copy, ImageIcon, LoaderCircle, Maximize2, Plus, RefreshCw, Search, Tag, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { usePageHeaderActions } from "@/components/app-shell/page-header-context";
 import { DateRangeFilter } from "@/components/date-range-filter";
 import { ImageLightbox } from "@/components/image-lightbox";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ function useLongPress(onLongPress: () => void, ms = LONG_PRESS_MS) {
 }
 
 function ImageManagerContent() {
+  const { setActions } = usePageHeaderActions();
   const [items, setItems] = useState<ManagedImage[]>([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -85,7 +87,7 @@ function ImageManagerContent() {
     sizeLabel: formatSize(item.size),
     dimensions: item.width && item.height ? `${item.width} x ${item.height}` : undefined,
   }));
-  const pageSize = 12;
+  const pageSize = 24;
   const pageCount = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const safePage = Math.min(page, pageCount);
   const currentRows = filteredItems.slice((safePage - 1) * pageSize, safePage * pageSize);
@@ -94,7 +96,7 @@ function ImageManagerContent() {
   const currentPageSelected = currentRows.length > 0 && currentRows.every((item) => selectedSet.has(imageKey(item)));
   const allSelected = filteredItems.length > 0 && filteredItems.every((item) => selectedSet.has(imageKey(item)));
 
-  const loadImages = async () => {
+  const loadImages = useCallback(async () => {
     setIsLoading(true);
     try {
       const [data, tagsData] = await Promise.all([
@@ -110,7 +112,7 @@ function ImageManagerContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [startDate, endDate]);
 
   const closeDialog = useCallback(() => {
     setDialogVisible(false);
@@ -234,29 +236,28 @@ function ImageManagerContent() {
 
   useEffect(() => {
     void loadImages();
-  }, [startDate, endDate]);
+  }, [loadImages]);
+
+  useEffect(() => {
+    setActions(null);
+    return () => setActions(null);
+  }, [setActions]);
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold tracking-[0.18em] text-content-tertiary uppercase">Images</div>
-          <h1 className="text-2xl font-semibold tracking-tight">Quản lý ảnh</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <DateRangeFilter startDate={startDate} endDate={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} />
-          <Button variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-border bg-white px-4 text-content">
-            Xoá bộ lọc
-          </Button>
-          <Button onClick={() => void loadImages()} disabled={isLoading} className="h-10 rounded-xl bg-primary-600 px-4 text-white hover:bg-primary-700">
-            {isLoading ? <LoaderCircle className="size-4 animate-spin" /> : <Search className="size-4" />}
-            Tìm kiếm
-          </Button>
-          <Button variant="outline" onClick={() => setDeleteMode("filtered")} disabled={isDeleting || items.length === 0 || (!startDate && !endDate)} className="h-10 rounded-xl border-rose-200 bg-white px-4 text-rose-600 hover:bg-rose-50">
-            <Trash2 className="size-4" />
-            Xoá theo ngày khớp
-          </Button>
-        </div>
+    <>
+      <div className="mb-6 flex flex-wrap gap-4">
+        <DateRangeFilter startDate={startDate} endDate={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} />
+        <Button variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-border bg-surface px-4 text-content">
+          Xoá bộ lọc
+        </Button>
+        <Button onClick={() => void loadImages()} disabled={isLoading} className="h-10 rounded-xl bg-primary-600 px-4 text-white hover:bg-primary-700">
+          {isLoading ? <LoaderCircle className="size-4 animate-spin" /> : <Search className="size-4" />}
+          Tìm kiếm
+        </Button>
+        <Button variant="outline" onClick={() => setDeleteMode("filtered")} disabled={isDeleting || items.length === 0 || (!startDate && !endDate)} className="h-10 rounded-xl border-rose-200 bg-surface px-4 text-rose-600 hover:bg-rose-50">
+          <Trash2 className="size-4" />
+          Xoá theo ngày
+        </Button>
       </div>
 
       {allTags.length > 0 ? (
@@ -307,7 +308,7 @@ function ImageManagerContent() {
         </div>
       ) : null}
 
-      <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+      <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
             <div className="flex flex-wrap items-center gap-3 text-sm text-content-secondary">
@@ -332,21 +333,21 @@ function ImageManagerContent() {
               <button type="button" className="text-sm text-content-tertiary hover:text-content disabled:text-content-tertiary" onClick={() => setSelectedPaths([])} disabled={selectedPaths.length === 0 || isDeleting}>
                 Bỏ chọn
               </button>
-              <Button variant="outline" className="h-8 rounded-lg border-rose-200 bg-white px-3 text-rose-600 hover:bg-rose-50" onClick={() => setDeleteMode("selected")} disabled={selectedPaths.length === 0 || isDeleting}>
+              <Button variant="outline" className="h-8 rounded-lg border-rose-200 bg-surface px-3 text-rose-600 hover:bg-rose-50" onClick={() => setDeleteMode("selected")} disabled={selectedPaths.length === 0 || isDeleting}>
                 <Trash2 className="size-4" />
                 Xoá đã chọn
               </Button>
             </div>
           </div>
-          <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-0 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {currentRows.map((item) => {
               const imageIndex = filteredItems.findIndex((row) => row.url === item.url);
               return (
-              <div key={item.rel} className="group border-r border-b border-border p-4 transition hover:bg-surface-secondary">
+              <div key={item.rel} className="group border-r border-b border-border p-2 transition hover:bg-surface-secondary">
                 <div className="relative">
                   <button
                     type="button"
-                    className="relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-lg bg-surface-secondary text-left"
+                    className="relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-md bg-surface-secondary text-left"
                     onClick={() => {
                       setLightboxIndex(imageIndex);
                       setLightboxOpen(true);
@@ -362,57 +363,60 @@ function ImageManagerContent() {
                         }
                       }}
                     />
-                    <span className="absolute right-2 bottom-2 rounded-full bg-black/50 p-2 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
-                      <Maximize2 className="size-4" />
+                    <span className="absolute right-1.5 bottom-1.5 rounded-full bg-black/50 p-1.5 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+                      <Maximize2 className="size-3" />
                     </span>
                   </button>
                   <button
                     type="button"
-                    className="absolute top-2 right-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-black/50 text-white opacity-100 transition hover:bg-red-600 sm:opacity-0 sm:group-hover:opacity-100"
+                    className="absolute top-1.5 right-1.5 z-10 inline-flex size-6 items-center justify-center rounded-full bg-black/50 text-white opacity-100 transition hover:bg-red-600 sm:opacity-0 sm:group-hover:opacity-100"
                     title="Xoá ảnh"
                     onClick={(e) => {
                       e.stopPropagation();
                       openDeleteDialog(item);
                     }}
                   >
-                    <Trash2 className="size-3.5" />
+                    <Trash2 className="size-3" />
                   </button>
+                  <Checkbox
+                    checked={selectedSet.has(imageKey(item))}
+                    onCheckedChange={(checked) => togglePaths([imageKey(item)], Boolean(checked))}
+                    className="absolute top-1.5 left-1.5 z-10 size-4 rounded border-border/70 bg-black/40 text-white opacity-100 transition data-[state=checked]:bg-primary-600 data-[state=checked]:border-primary-600 sm:opacity-0 sm:group-hover:opacity-100 data-[state=checked]:!opacity-100"
+                  />
                 </div>
-                <div className="mt-3 space-y-2 text-xs text-content-tertiary">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 font-medium text-content">
-                      <CalendarDays className="size-3.5" />
-                      {item.created_at}
+                <div className="mt-1.5 space-y-1 text-[11px] text-content-tertiary">
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex min-w-0 items-center gap-1 font-medium text-content" title={item.created_at}>
+                      <CalendarDays className="size-3 shrink-0" />
+                      <span className="truncate">{(item.created_at || "").slice(5, 16)}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-lg text-content-tertiary hover:bg-surface-secondary hover:text-content"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(item.url);
-                          toast.success("Đã sao chép địa chỉ ảnh");
-                        }}
-                      >
-                        <Copy className="size-4" />
-                      </Button>
-                      <Checkbox checked={selectedSet.has(imageKey(item))} onCheckedChange={(checked) => togglePaths([imageKey(item)], Boolean(checked))} />
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6 rounded-md text-content-tertiary hover:bg-surface-secondary hover:text-content"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(item.url);
+                        toast.success("Đã sao chép địa chỉ ảnh");
+                      }}
+                      title="Sao chép địa chỉ ảnh"
+                    >
+                      <Copy className="size-3" />
+                    </Button>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-1">
                     <span>{formatSize(item.size)}</span>
-                    <span>{item.width && item.height ? `${item.width} x ${item.height}` : "-"}</span>
+                    <span className="truncate">{item.width && item.height ? `${item.width}×${item.height}` : "-"}</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-0.5">
                     {(item.tags ?? []).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="gap-0.5 rounded-md py-0 pr-0.5 text-[10px]">
+                      <Badge key={tag} variant="secondary" className="gap-0.5 rounded-md px-1 py-0 pr-0.5 text-[10px]">
                         {tag}
                         <button
                           type="button"
-                          className="inline-flex size-3.5 items-center justify-center rounded-full hover:bg-surface-tertiary"
+                          className="inline-flex size-3 items-center justify-center rounded-full hover:bg-surface-tertiary"
                           onClick={() => handleRemoveTag(item, tag)}
                         >
-                          <X className="size-2.5" />
+                          <X className="size-2" />
                         </button>
                       </Badge>
                     ))}
@@ -420,10 +424,10 @@ function ImageManagerContent() {
                       <PopoverTrigger asChild>
                         <button
                           type="button"
-                          className="inline-flex size-5 items-center justify-center rounded-full border border-dashed border-border text-content-tertiary hover:border-content-tertiary hover:text-content-secondary"
+                          className="inline-flex size-4 items-center justify-center rounded-full border border-dashed border-border text-content-tertiary hover:border-content-tertiary hover:text-content-secondary"
                           title="Thêm nhãn"
                         >
-                          <Plus className="size-3" />
+                          <Plus className="size-2.5" />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent align="start" className="w-56 p-2">
@@ -479,10 +483,10 @@ function ImageManagerContent() {
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3 text-sm text-content-tertiary">
             <span>Trang {safePage} / {pageCount}, tổng {filteredItems.length} ảnh</span>
-            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-white" disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-surface" disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
               <ChevronLeft className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-white" disabled={safePage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
+            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-surface" disabled={safePage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
               <ChevronRight className="size-4" />
             </Button>
           </div>
@@ -576,7 +580,7 @@ function ImageManagerContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </section>
+    </>
   );
 }
 

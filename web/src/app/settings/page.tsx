@@ -6,11 +6,10 @@ import { LoaderCircle } from "lucide-react";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 
 import { BackupSettingsCard } from "./components/backup-settings-card";
-import { ConfigCard } from "./components/config-card";
+import { AIReviewCard, AccountLogsCard, ConfigSaveButton, ContentCard, ProxyCard, SystemSettingsCard } from "./components/config-card";
 import { CPAPoolDialog } from "./components/cpa-pool-dialog";
 import { CPAPoolsCard } from "./components/cpa-pools-card";
 import { ImportBrowserDialog } from "./components/import-browser-dialog";
-import { SettingsHeader } from "./components/settings-header";
 import { Sub2APIConnections } from "./components/sub2api-connections";
 import { UserKeysCard } from "./components/user-keys-card";
 import { useSettingsStore } from "./store";
@@ -63,14 +62,24 @@ function SettingsPageContent() {
   return (
     <>
       <SettingsDataController />
-      <SettingsHeader />
-      <section className="space-y-6">
-        <ConfigCard />
-        <BackupSettingsCard />
-        <UserKeysCard />
-        <CPAPoolsCard />
-        <Sub2APIConnections />
-      </section>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
+        {/* Cột trái — blocks nhiều field */}
+        <div className="space-y-4">
+          <SystemSettingsCard />
+          <ContentCard />
+          <AIReviewCard />
+          <BackupSettingsCard />
+          <ConfigSaveButton />
+        </div>
+        {/* Cột phải — blocks nhỏ gọn */}
+        <div className="space-y-4">
+          <ProxyCard />
+          <AccountLogsCard />
+          <UserKeysCard />
+          <CPAPoolsCard />
+          <Sub2APIConnections />
+        </div>
+      </div>
       <CPAPoolDialog />
       <ImportBrowserDialog />
     </>

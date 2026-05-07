@@ -47,7 +47,7 @@ export function ProxySettingsCard() {
   };
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
       <CardContent className="space-y-6 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-3">
@@ -79,7 +79,7 @@ export function ProxySettingsCard() {
                   setTestResult(null);
                 }}
                 placeholder="http://user:pass@127.0.0.1:7890"
-                className="h-11 rounded-xl border-border bg-white"
+                className="h-11 rounded-xl border-border bg-surface"
               />
               <p className="text-sm text-content-tertiary">
                 Để trống có nghĩa không sử dụng Proxy. Vui lòng điền địa chỉ đầy đủ, ví dụ: `http://127.0.0.1:7890`, `http://username:password@127.0.0.1:7890` hoặc `socks5://127.0.0.1:7890`.
@@ -103,7 +103,7 @@ export function ProxySettingsCard() {
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
-                className="h-10 rounded-xl border-border bg-white px-5 text-content"
+                className="h-10 rounded-xl border-border bg-surface px-5 text-content"
                 onClick={() => void handleTest()}
                 disabled={isTesting || isLoadingConfig}
               >

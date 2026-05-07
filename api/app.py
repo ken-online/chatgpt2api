@@ -3,12 +3,12 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from threading import Event
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from api import accounts, ai, image_tasks, register, system
+from api import accounts, ai, image_tasks, register, remove_background, system
 from api.support import resolve_web_asset, start_limited_account_watcher
 from services.backup_service import backup_service
 from services.config import config
@@ -42,9 +42,26 @@ def create_app() -> FastAPI:
     app.include_router(accounts.create_router())
     app.include_router(image_tasks.create_router())
     app.include_router(register.create_router())
+    app.include_router(remove_background.create_router())
     app.include_router(system.create_router(app_version))
     if config.images_dir.exists():
         app.mount("/images", StaticFiles(directory=str(config.images_dir)), name="images")
+
+    @app.get("/api/download-image", include_in_schema=False)
+    async def download_image(path: str = Query(..., description="Đường dẫn file, bắt đầu bằng /images/")):
+        # Chỉ cho phép path bắt đầu bằng /images/
+        clean = path.lstrip("/")
+        if not clean.startswith("images/"):
+            raise HTTPException(status_code=400, detail="Chỉ hỗ trợ tải xuống file trong /images/")
+        rel = clean.removeprefix("images/").lstrip("/")
+        file_path = config.images_dir / rel
+        if not file_path.exists() or not file_path.is_file():
+            raise HTTPException(status_code=404, detail="Không tìm thấy file")
+        return FileResponse(
+            str(file_path),
+            media_type="image/png",
+            headers={"Content-Disposition": f'attachment; filename="{file_path.name}"'},
+        )
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_web(full_path: str):

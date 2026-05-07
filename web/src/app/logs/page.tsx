@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ImageIcon, LoaderCircle, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { usePageHeaderActions } from "@/components/app-shell/page-header-context";
 import { DateRangeFilter } from "@/components/date-range-filter";
 import { ImageLightbox } from "@/components/image-lightbox";
 import { ImageThumbnail, getImageThumbnailUrl } from "@/components/image-thumbnail";
@@ -50,6 +51,7 @@ function getStatus(item: SystemLog) {
 }
 
 function LogsContent() {
+  const { setActions } = usePageHeaderActions();
   const [items, setItems] = useState<SystemLog[]>([]);
   const [type, setType] = useState<string>(LogType.Call);
   const [startDate, setStartDate] = useState("");
@@ -74,7 +76,7 @@ function LogsContent() {
   const currentPageSelected = currentRows.length > 0 && currentRows.every((item) => selectedSet.has(item.id));
   const allSelected = items.length > 0 && items.every((item) => selectedSet.has(item.id));
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await fetchSystemLogs({ type, start_date: startDate, end_date: endDate });
@@ -86,12 +88,12 @@ function LogsContent() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [type, startDate, endDate]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setStartDate("");
     setEndDate("");
-  };
+  }, []);
 
   const openDetail = (item: SystemLog) => {
     setDetailLog(item);
@@ -131,35 +133,34 @@ function LogsContent() {
 
   useEffect(() => {
     void loadLogs();
-  }, [type, startDate, endDate]);
+  }, [loadLogs]);
+
+  useEffect(() => {
+    setActions(null);
+    return () => setActions(null);
+  }, [setActions]);
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold tracking-[0.18em] text-content-tertiary uppercase">Logs</div>
-          <h1 className="text-2xl font-semibold tracking-tight">Quản lý nhật ký</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="h-10 w-[150px] rounded-xl border-border bg-white"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value={LogType.Call}>Nhật ký gọi API</SelectItem>
-              <SelectItem value={LogType.Account}>Nhật ký quản lý tài khoản</SelectItem>
-            </SelectContent>
-          </Select>
-          <DateRangeFilter startDate={startDate} endDate={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} />
-          <Button variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-border bg-white px-4 text-content">
-            Xóa bộ lọc
-          </Button>
-          <Button onClick={() => void loadLogs()} disabled={isLoading} className="h-10 rounded-xl bg-primary-600 px-4 text-white hover:bg-primary-700">
-            {isLoading ? <LoaderCircle className="size-4 animate-spin" /> : <Search className="size-4" />}
-            Tìm kiếm
-          </Button>
-        </div>
+    <>
+      <div className="mb-6 flex flex-wrap gap-4">
+        <Select value={type} onValueChange={setType}>
+          <SelectTrigger className="h-10 w-[200px] rounded-xl border-border bg-surface"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value={LogType.Call}>Nhật ký gọi API</SelectItem>
+            <SelectItem value={LogType.Account}>Nhật ký quản lý tài khoản</SelectItem>
+          </SelectContent>
+        </Select>
+        <DateRangeFilter startDate={startDate} endDate={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} />
+        <Button variant="outline" onClick={clearFilters} className="h-10 rounded-xl border-border bg-surface px-4 text-content">
+          Xóa bộ lọc
+        </Button>
+        <Button onClick={() => void loadLogs()} disabled={isLoading} className="h-10 rounded-xl bg-primary-600 px-4 text-white hover:bg-primary-700">
+          {isLoading ? <LoaderCircle className="size-4 animate-spin" /> : <Search className="size-4" />}
+          Tìm kiếm
+        </Button>
       </div>
 
-      <Card className="overflow-hidden rounded-2xl border-white/80 bg-surface shadow-sm">
+      <Card className="overflow-hidden rounded-2xl border-border/80 bg-surface shadow-sm">
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
             <div className="flex flex-wrap items-center gap-3 text-sm text-content-secondary">
@@ -182,7 +183,7 @@ function LogsContent() {
               <button type="button" className="text-sm text-content-tertiary hover:text-content disabled:text-content-tertiary" onClick={() => setSelectedIds([])} disabled={selectedIds.length === 0 || isDeleting}>
                 Bỏ chọn
               </button>
-              <Button variant="outline" className="h-8 rounded-lg border-rose-200 bg-white px-3 text-rose-600 hover:bg-rose-50" onClick={() => setDeletingItems(items.filter((item) => selectedSet.has(item.id)))} disabled={selectedIds.length === 0 || isDeleting}>
+              <Button variant="outline" className="h-8 rounded-lg border-rose-200 bg-surface px-3 text-rose-600 hover:bg-rose-50" onClick={() => setDeletingItems(items.filter((item) => selectedSet.has(item.id)))} disabled={selectedIds.length === 0 || isDeleting}>
                 <Trash2 className="size-4" />
                 Xóa lựa chọn
               </Button>
@@ -266,10 +267,10 @@ function LogsContent() {
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3 text-sm text-content-tertiary">
             <span>Trang {safePage} / {pageCount}, tổng cộng {items.length} mục</span>
-            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-white" disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
+            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-surface" disabled={safePage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
               <ChevronLeft className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-white" disabled={safePage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
+            <Button variant="outline" size="icon" className="size-9 rounded-lg border-border bg-surface" disabled={safePage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
               <ChevronRight className="size-4" />
             </Button>
           </div>
@@ -286,7 +287,7 @@ function LogsContent() {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <div className="space-y-4">
-              <div className="grid gap-3 rounded-xl border border-border bg-white p-4 text-sm text-content-secondary md:grid-cols-2">
+              <div className="grid gap-3 rounded-xl border border-border bg-surface p-4 text-sm text-content-secondary md:grid-cols-2">
                 {Object.entries(detailLog?.detail || {})
                   .filter(([key, value]) => key !== "urls" && typeof value !== "object")
                   .map(([key, value]) => (
@@ -346,7 +347,7 @@ function LogsContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </section>
+    </>
   );
 }
 

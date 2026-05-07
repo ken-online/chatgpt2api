@@ -19,7 +19,7 @@ export function BaseUrlCard() {
   const baseUrl = String(config?.base_url || "");
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
       <CardContent className="space-y-6 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-3">
@@ -48,7 +48,7 @@ export function BaseUrlCard() {
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
                 placeholder="https://example.com"
-                className="h-11 rounded-xl border-border bg-white"
+                className="h-11 rounded-xl border-border bg-surface"
               />
               <p className="text-sm text-content-tertiary">Để trống sẽ sử dụng biến môi trường hoặc giá trị mặc định. Khoảng trắng ở đầu và cuối sẽ được xóa tự động khi lưu.</p>
             </div>

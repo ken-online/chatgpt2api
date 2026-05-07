@@ -9,7 +9,7 @@ import type { RegisterConfig } from "@/lib/api";
 import { getStoredAuthKey } from "@/store/auth";
 
 import { useSettingsStore } from "../settings/store";
-import { RegisterCard } from "./components/register-card";
+import { RegisterConfigCard, RegisterEmailCard, RegisterLogsCard, RegisterStatsCard } from "./components/register-card";
 
 function RegisterDataController() {
   const didLoadRef = useRef(false);
@@ -46,15 +46,18 @@ function RegisterPageContent() {
   return (
     <>
       <RegisterDataController />
-      <section className="mb-2 flex flex-col gap-1 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold tracking-[0.18em] text-content-tertiary uppercase">Register</div>
-          <h1 className="text-2xl font-semibold tracking-tight">Công cụ đăng ký ChatGPT</h1>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start">
+        {/* Cột trái — cấu hình */}
+        <div className="space-y-4">
+          <RegisterConfigCard />
+          <RegisterEmailCard />
         </div>
-      </section>
-      <section>
-        <RegisterCard />
-      </section>
+        {/* Cột phải — điều khiển & logs */}
+        <div className="space-y-4">
+          <RegisterStatsCard />
+          <RegisterLogsCard />
+        </div>
+      </div>
     </>
   );
 }

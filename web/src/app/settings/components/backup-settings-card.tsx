@@ -98,7 +98,7 @@ export function BackupSettingsCard() {
 
   if (isLoadingConfig) {
     return (
-      <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+      <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
         <CardContent className="flex items-center justify-center p-10">
           <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
         </CardContent>
@@ -165,7 +165,7 @@ export function BackupSettingsCard() {
 
   return (
     <>
-      <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+      <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
         <CardContent className="space-y-6 p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -189,14 +189,14 @@ export function BackupSettingsCard() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-sm text-content">
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content">
               <Checkbox
                 checked={Boolean(backup.enabled)}
                 onCheckedChange={(checked) => setBackupField("enabled", Boolean(checked))}
               />
               Bật Sao lưu định kỳ
             </label>
-            <label className="flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-sm text-content">
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content">
               <Checkbox
                 checked={Boolean(backup.encrypt)}
                 onCheckedChange={(checked) => setBackupField("encrypt", Boolean(checked))}
@@ -206,46 +206,46 @@ export function BackupSettingsCard() {
 
           <div className="space-y-2">
             <label className="text-sm text-content">Cloudflare Account ID</label>
-            <Input value={String(backup.account_id || "")} onChange={(event) => setBackupField("account_id", event.target.value)} className="h-10 rounded-xl border-border bg-white" />
+            <Input value={String(backup.account_id || "")} onChange={(event) => setBackupField("account_id", event.target.value)} className="h-10 rounded-xl border-border bg-surface" />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-content">Tên Bucket</label>
-            <Input value={String(backup.bucket || "")} onChange={(event) => setBackupField("bucket", event.target.value)} className="h-10 rounded-xl border-border bg-white" />
+            <Input value={String(backup.bucket || "")} onChange={(event) => setBackupField("bucket", event.target.value)} className="h-10 rounded-xl border-border bg-surface" />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm text-content">Access Key ID</label>
-            <Input value={String(backup.access_key_id || "")} onChange={(event) => setBackupField("access_key_id", event.target.value)} className="h-10 rounded-xl border-border bg-white" />
+            <Input value={String(backup.access_key_id || "")} onChange={(event) => setBackupField("access_key_id", event.target.value)} className="h-10 rounded-xl border-border bg-surface" />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-content">Secret Access Key</label>
-            <Input type="password" value={String(backup.secret_access_key || "")} onChange={(event) => setBackupField("secret_access_key", event.target.value)} className="h-10 rounded-xl border-border bg-white" />
+            <Input type="password" value={String(backup.secret_access_key || "")} onChange={(event) => setBackupField("secret_access_key", event.target.value)} className="h-10 rounded-xl border-border bg-surface" />
           </div>
 
           <div className="space-y-2">
             <label className="text-sm text-content">Tiền tố Sao lưu</label>
-            <Input value={String(backup.prefix || "")} onChange={(event) => setBackupField("prefix", event.target.value)} placeholder="backups" className="h-10 rounded-xl border-border bg-white" />
+            <Input value={String(backup.prefix || "")} onChange={(event) => setBackupField("prefix", event.target.value)} placeholder="backups" className="h-10 rounded-xl border-border bg-surface" />
             <p className="text-xs text-content-tertiary">Tiền tố đối tượng trong R2, ví dụ `backups/prod`.</p>
           </div>
           <div className="space-y-2">
             <label className="text-sm text-content">Khoảng thời gian Sao lưu định kỳ</label>
-            <Input value={String(backup.interval_minutes || "")} onChange={(event) => setBackupField("interval_minutes", event.target.value)} placeholder="360" className="h-10 rounded-xl border-border bg-white" />
+            <Input value={String(backup.interval_minutes || "")} onChange={(event) => setBackupField("interval_minutes", event.target.value)} placeholder="360" className="h-10 rounded-xl border-border bg-surface" />
             <p className="text-xs text-content-tertiary">Đơn vị phút, dịch vụ sẽ tự động thực hiện theo khoảng này sau khi khởi động.</p>
           </div>
 
           <div className="space-y-2">
             <label className="text-sm text-content">Số lượng Sao lưu giữ lại</label>
-            <Input value={String(backup.rotation_keep || "")} onChange={(event) => setBackupField("rotation_keep", event.target.value)} placeholder="10" className="h-10 rounded-xl border-border bg-white" />
+            <Input value={String(backup.rotation_keep || "")} onChange={(event) => setBackupField("rotation_keep", event.target.value)} placeholder="10" className="h-10 rounded-xl border-border bg-surface" />
             <p className="text-xs text-content-tertiary">Tự động xoá các bản sao lưu cũ hơn sau khi tải lên thành công. Điền `0` nghĩa là không xoay vòng tự động.</p>
           </div>
           <div className="space-y-2">
             <label className="text-sm text-content">Cụm mật khẩu mã hoá</label>
-            <Input type="password" value={String(backup.passphrase || "")} onChange={(event) => setBackupField("passphrase", event.target.value)} placeholder={backup.encrypt ? "Bắt buộc khi bật mã hoá" : "Để trống"} className="h-10 rounded-xl border-border bg-white" />
+            <Input type="password" value={String(backup.passphrase || "")} onChange={(event) => setBackupField("passphrase", event.target.value)} placeholder={backup.encrypt ? "Bắt buộc khi bật mã hoá" : "Để trống"} className="h-10 rounded-xl border-border bg-surface" />
             <p className="text-xs text-content-tertiary">Chỉ sử dụng khi bật mã hoá. Vui lòng giữ kỹ, nếu không không thể giải mã nội dung sao lưu.</p>
           </div>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-border bg-white px-4 py-4">
+          <div className="space-y-3 rounded-xl border border-border bg-surface px-4 py-4">
           <div>
             <div className="text-sm font-medium text-content">Nội dung sao lưu</div>
             <p className="mt-1 text-xs text-content-tertiary">Chọn dữ liệu cần vào gói sao lưu theo thành phần.</p>
@@ -285,15 +285,15 @@ export function BackupSettingsCard() {
           </div>
 
           <div className="flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-white px-4 text-content" onClick={() => void testBackup()} disabled={isTestingBackup}>
+          <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-surface px-4 text-content" onClick={() => void testBackup()} disabled={isTestingBackup}>
             {isTestingBackup ? <LoaderCircle className="size-4 animate-spin" /> : <Shield className="size-4" />}
             Kiểm tra kết nối
           </Button>
-          <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-white px-4 text-content" onClick={() => void loadBackups()} disabled={isLoadingBackups}>
+          <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-surface px-4 text-content" onClick={() => void loadBackups()} disabled={isLoadingBackups}>
             {isLoadingBackups ? <LoaderCircle className="size-4 animate-spin" /> : <RefreshCcw className="size-4" />}
             Làm tươi danh sách
           </Button>
-          <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-white px-4 text-content" onClick={() => void runBackup()} disabled={isRunningBackup || Boolean(backupState?.running)}>
+          <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-surface px-4 text-content" onClick={() => void runBackup()} disabled={isRunningBackup || Boolean(backupState?.running)}>
             {isRunningBackup || backupState?.running ? <LoaderCircle className="size-4 animate-spin" /> : <Play className="size-4" />}
             Sao lưu ngay
           </Button>
@@ -324,7 +324,7 @@ export function BackupSettingsCard() {
               {backups.map((item) => {
                 const isDeleting = deletingBackupKey === item.key;
                 return (
-                  <div key={item.key} className="flex flex-col gap-3 rounded-xl border border-border bg-white px-4 py-4 md:flex-row md:items-center md:justify-between">
+                  <div key={item.key} className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-4 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <div className="break-all text-sm font-medium text-content">{item.name}</div>
@@ -341,20 +341,20 @@ export function BackupSettingsCard() {
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-9 rounded-xl border-border bg-white px-4 text-content"
+                        className="h-9 rounded-xl border-border bg-surface px-4 text-content"
                         onClick={() => void handleDownload(item.key, item.name)}
                       >
                         <Download className="size-4" />
                         Tải xuống
                       </Button>
-                      <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-white px-4 text-content" onClick={() => void handleOpenDetail(item.key)}>
+                      <Button type="button" variant="outline" className="h-9 rounded-xl border-border bg-surface px-4 text-content" onClick={() => void handleOpenDetail(item.key)}>
                         <Eye className="size-4" />
                         Xem chi tiết
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-                        className="h-9 rounded-xl border-rose-200 bg-white px-4 text-rose-700"
+                        className="h-9 rounded-xl border-rose-200 bg-surface px-4 text-rose-700"
                         onClick={() => void removeBackup(item.key)}
                         disabled={isDeleting}
                       >
@@ -372,7 +372,7 @@ export function BackupSettingsCard() {
       </Card>
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col overflow-hidden rounded-2xl border-white/80 bg-white">
+        <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col overflow-hidden rounded-2xl border-border/80 bg-surface">
           <DialogHeader className="shrink-0 border-b border-border pb-3">
             <DialogTitle>Chi tiết sao lưu</DialogTitle>
             <DialogDescription className="sr-only">
@@ -409,7 +409,7 @@ export function BackupSettingsCard() {
                   </div>
                   <div className="md:col-span-2">
                     <div className="text-xs text-content-tertiary">Backend lưu trữ</div>
-                    <pre className="mt-1 overflow-x-auto rounded-lg border border-border bg-white px-3 py-2 text-xs text-content">{JSON.stringify(detail.storage_backend || {}, null, 2)}</pre>
+                    <pre className="mt-1 overflow-x-auto rounded-lg border border-border bg-surface px-3 py-2 text-xs text-content">{JSON.stringify(detail.storage_backend || {}, null, 2)}</pre>
                   </div>
                 </div>
 
@@ -417,7 +417,7 @@ export function BackupSettingsCard() {
                   <h4 className="text-sm font-medium text-content">Nội dung tệp</h4>
                   <div className="space-y-2">
                     {detail.files.map((item) => (
-                      <div key={item.name} className="rounded-xl border border-border bg-white px-4 py-3 text-sm">
+                      <div key={item.name} className="rounded-xl border border-border bg-surface px-4 py-3 text-sm">
                         <div className="break-all font-medium text-content">{item.name}</div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-content-tertiary">
                           <span>{item.exists ? "Đã bao gồm" : "Thiếu"}</span>
@@ -434,7 +434,7 @@ export function BackupSettingsCard() {
                   <h4 className="text-sm font-medium text-content">Nội dung ảnh chụp</h4>
                   <div className="grid gap-3 md:grid-cols-2">
                     {detail.snapshots.map((item) => (
-                      <div key={item.name} className="rounded-xl border border-border bg-white px-4 py-3 text-sm">
+                      <div key={item.name} className="rounded-xl border border-border bg-surface px-4 py-3 text-sm">
                         <div className="font-medium text-content">{item.name}</div>
                         <div className="mt-2 text-xs text-content-tertiary">Số bản ghi {item.count}</div>
                       </div>

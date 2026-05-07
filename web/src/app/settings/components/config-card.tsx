@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, PlugZap, Save } from "lucide-react";
+import { FileText, LoaderCircle, PlugZap, Save, Settings2, Shield, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -13,26 +13,102 @@ import { testProxy, type ProxyTestResult } from "@/lib/api";
 
 import { useSettingsStore } from "../store";
 
-export function ConfigCard() {
-  const [isTestingProxy, setIsTestingProxy] = useState(false);
-  const [proxyTestResult, setProxyTestResult] = useState<ProxyTestResult | null>(null);
-  const logLevelOptions = ["debug", "info", "warning", "error"];
+export function SystemSettingsCard() {
   const config = useSettingsStore((state) => state.config);
   const isLoadingConfig = useSettingsStore((state) => state.isLoadingConfig);
-  const isSavingConfig = useSettingsStore((state) => state.isSavingConfig);
   const setRefreshAccountIntervalMinute = useSettingsStore((state) => state.setRefreshAccountIntervalMinute);
   const setImageRetentionDays = useSettingsStore((state) => state.setImageRetentionDays);
   const setImagePollTimeoutSecs = useSettingsStore((state) => state.setImagePollTimeoutSecs);
   const setImageAccountConcurrency = useSettingsStore((state) => state.setImageAccountConcurrency);
-  const setAutoRemoveInvalidAccounts = useSettingsStore((state) => state.setAutoRemoveInvalidAccounts);
-  const setAutoRemoveRateLimitedAccounts = useSettingsStore((state) => state.setAutoRemoveRateLimitedAccounts);
-  const setLogLevel = useSettingsStore((state) => state.setLogLevel);
-  const setProxy = useSettingsStore((state) => state.setProxy);
   const setBaseUrl = useSettingsStore((state) => state.setBaseUrl);
-  const setGlobalSystemPrompt = useSettingsStore((state) => state.setGlobalSystemPrompt);
-  const setSensitiveWordsText = useSettingsStore((state) => state.setSensitiveWordsText);
-  const setAIReviewField = useSettingsStore((state) => state.setAIReviewField);
-  const saveConfig = useSettingsStore((state) => state.saveConfig);
+
+  if (isLoadingConfig) {
+    return (
+      <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
+        <CardContent className="flex items-center justify-center p-10">
+          <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-surface-secondary">
+            <Settings2 className="size-4 text-content-secondary" />
+          </div>
+          <h2 className="font-semibold text-content">Cài đặt hệ thống</h2>
+        </div>
+        <span className="hidden text-sm text-content-tertiary sm:block">Cấu hình vận hành chung</span>
+      </div>
+      <CardContent className="space-y-4 p-6">
+        <div className="rounded-xl border border-border bg-surface-secondary px-4 py-3 text-sm leading-6 text-content-secondary">
+          Khóa đăng nhập quản trị viên tiếp tục được đọc từ cấu hình triển khai và không còn được hiển thị trên trang này. Để phân phát cho người khác, vui lòng tạo khóa người dùng thông thường bên dưới.
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm text-content">Khoảng thời gian làm mới tài khoản</label>
+            <Input
+              value={String(config?.refresh_account_interval_minute || "")}
+              onChange={(e) => setRefreshAccountIntervalMinute(e.target.value)}
+              placeholder="phút"
+              className="h-10 rounded-xl border-border bg-surface"
+            />
+            <p className="text-xs text-content-tertiary">Đơn vị: phút, kiểm soát tần suất làm mới tài khoản tự động.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-content">Địa chỉ truy cập hình ảnh</label>
+            <Input
+              value={String(config?.base_url || "")}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="h-10 rounded-xl border-border bg-surface"
+            />
+            <p className="text-xs text-content-tertiary">Địa chỉ tiền tố truy cập dùng để tạo kết quả hình ảnh.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-content">Tự động xóa hình ảnh (ngày)</label>
+            <Input
+              value={String(config?.image_retention_days || "")}
+              onChange={(e) => setImageRetentionDays(e.target.value)}
+              placeholder="30"
+              className="h-10 rounded-xl border-border bg-surface"
+            />
+            <p className="text-xs text-content-tertiary">Tự động xóa các hình ảnh cục bộ từ bao nhiêu ngày trước.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-content">Hết thời gian chờ hình ảnh (giây)</label>
+            <Input
+              value={String(config?.image_poll_timeout_secs || "")}
+              onChange={(e) => setImagePollTimeoutSecs(e.target.value)}
+              placeholder="120"
+              className="h-10 rounded-xl border-border bg-surface"
+            />
+            <p className="text-xs text-content-tertiary">Thời gian chờ tối đa cho kết quả hình ảnh từ ngược dòng.</p>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-sm text-content">Xử lý song song hình ảnh / tài khoản</label>
+            <Input
+              value={String(config?.image_account_concurrency || "")}
+              onChange={(e) => setImageAccountConcurrency(e.target.value)}
+              placeholder="1"
+              className="h-10 rounded-xl border-border bg-surface"
+            />
+            <p className="text-xs text-content-tertiary">Giới hạn số yêu cầu hình ảnh đồng thời cho mỗi tài khoản, mặc định 3.</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ProxyCard() {
+  const [isTestingProxy, setIsTestingProxy] = useState(false);
+  const [proxyTestResult, setProxyTestResult] = useState<ProxyTestResult | null>(null);
+  const config = useSettingsStore((state) => state.config);
+  const setProxy = useSettingsStore((state) => state.setProxy);
 
   const handleTestProxy = async () => {
     const candidate = String(config?.proxy || "").trim();
@@ -57,205 +133,230 @@ export function ConfigCard() {
     }
   };
 
-  if (isLoadingConfig) {
-    return (
-      <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
-        <CardContent className="flex items-center justify-center p-10">
-          <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
-        </CardContent>
-      </Card>
-    );
-  }
+  return (
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-surface-secondary">
+            <PlugZap className="size-4 text-content-secondary" />
+          </div>
+          <h2 className="font-semibold text-content">Proxy toàn cục</h2>
+        </div>
+        <span className="hidden text-sm text-content-tertiary sm:block">Kết nối mạng</span>
+      </div>
+      <CardContent className="space-y-4 p-6">
+        <div className="space-y-2">
+          <label className="text-sm text-content">Địa chỉ Proxy</label>
+          <Input
+            value={String(config?.proxy || "")}
+            onChange={(e) => {
+              setProxy(e.target.value);
+              setProxyTestResult(null);
+            }}
+            placeholder="http://127.0.0.1:7890"
+            className="h-10 rounded-xl border-border bg-surface"
+          />
+          <p className="text-xs text-content-tertiary">Để trống có nghĩa không sử dụng Proxy.</p>
+        </div>
+        {proxyTestResult ? (
+          <div className={`rounded-xl border px-3 py-2 text-xs leading-6 ${proxyTestResult.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
+            {proxyTestResult.ok
+              ? `Khả dụng: HTTP ${proxyTestResult.status}, ${proxyTestResult.latency_ms} ms`
+              : `Không khả dụng: ${proxyTestResult.error ?? "Lỗi không xác định"}`}
+          </div>
+        ) : null}
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 rounded-xl border-border bg-surface px-4 text-content"
+          onClick={() => void handleTestProxy()}
+          disabled={isTestingProxy}
+        >
+          {isTestingProxy ? <LoaderCircle className="size-4 animate-spin" /> : <PlugZap className="size-4" />}
+          Kiểm tra Proxy
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function AccountLogsCard() {
+  const logLevelOptions = ["debug", "info", "warning", "error"];
+  const config = useSettingsStore((state) => state.config);
+  const setAutoRemoveInvalidAccounts = useSettingsStore((state) => state.setAutoRemoveInvalidAccounts);
+  const setAutoRemoveRateLimitedAccounts = useSettingsStore((state) => state.setAutoRemoveRateLimitedAccounts);
+  const setLogLevel = useSettingsStore((state) => state.setLogLevel);
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
-      <CardContent className="space-y-4 p-6">
-        <div className="rounded-xl border border-border bg-surface-secondary px-4 py-3 text-sm leading-6 text-content-secondary">
-          Khóa đăng nhập quản trị viên tiếp tục được đọc từ cấu hình triển khai và không còn được hiển thị trên trang này. Để phân phát cho những người khác, vui lòng tạo khóa người dùng thông thường bên dưới.
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-surface-secondary">
+            <Shield className="size-4 text-content-secondary" />
+          </div>
+          <h2 className="font-semibold text-content">Tài khoản & Nhật ký</h2>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm text-content">Khoảng thời gian làm mới tài khoản</label>
-            <Input
-              value={String(config?.refresh_account_interval_minute || "")}
-              onChange={(event) => setRefreshAccountIntervalMinute(event.target.value)}
-              placeholder="phút"
-              className="h-10 rounded-xl border-border bg-white"
-            />
-            <p className="text-xs text-content-tertiary">Đơn vị: phút, kiểm soát tần suất làm mới tài khoản tự động.</p>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-content">Proxy toàn cục</label>
-            <Input
-              value={String(config?.proxy || "")}
-              onChange={(event) => {
-                setProxy(event.target.value);
-                setProxyTestResult(null);
-              }}
-              placeholder="http://127.0.0.1:7890"
-              className="h-10 rounded-xl border-border bg-white"
-            />
-            <p className="text-xs text-content-tertiary">Để trống có nghĩa không sử dụng Proxy.</p>
-            {proxyTestResult ? (
-              <div
-                className={`rounded-xl border px-3 py-2 text-xs leading-6 ${
-                  proxyTestResult.ok
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-rose-200 bg-rose-50 text-rose-800"
-                }`}
-              >
-                {proxyTestResult.ok
-                  ? `Proxy khả dụng: HTTP ${proxyTestResult.status}, thời gian ${proxyTestResult.latency_ms} ms`
-                  : `Proxy không khả dụng: ${proxyTestResult.error ?? "Lỗi không xác định"} (thời gian ${proxyTestResult.latency_ms} ms)`}
-              </div>
-            ) : null}
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 rounded-xl border-border bg-white px-4 text-content"
-                onClick={() => void handleTestProxy()}
-                disabled={isTestingProxy}
-              >
-                {isTestingProxy ? <LoaderCircle className="size-4 animate-spin" /> : <PlugZap className="size-4" />}
-                Kiểm tra Proxy
-              </Button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-content">Địa chỉ truy cập hình ảnh</label>
-            <Input
-              value={String(config?.base_url || "")}
-              onChange={(event) => setBaseUrl(event.target.value)}
-              placeholder="https://example.com"
-              className="h-10 rounded-xl border-border bg-white"
-            />
-            <p className="text-xs text-content-tertiary">Địa chỉ tiền tố truy cập dùng để tạo kết quả hình ảnh.</p>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-content">Tự động xóa hình ảnh</label>
-            <Input
-              value={String(config?.image_retention_days || "")}
-              onChange={(event) => setImageRetentionDays(event.target.value)}
-              placeholder="30"
-              className="h-10 rounded-xl border-border bg-white"
-            />
-            <p className="text-xs text-content-tertiary">Tự động xóa các hình ảnh cục bộ từ bao nhiêu ngày trước.</p>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-content">Hết thời gian chờ hình ảnh</label>
-            <Input
-              value={String(config?.image_poll_timeout_secs || "")}
-              onChange={(event) => setImagePollTimeoutSecs(event.target.value)}
-              placeholder="120"
-              className="h-10 rounded-xl border-border bg-white"
-            />
-            <p className="text-xs text-content-tertiary">Đơn vị: giây, thời gian chờ tối đa cho kết quả hình ảnh từ ngược dòng.</p>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm text-content">Xử lý song song hình ảnh cho mỗi tài khoản</label>
-            <Input
-              value={String(config?.image_account_concurrency || "")}
-              onChange={(event) => setImageAccountConcurrency(event.target.value)}
-              placeholder="1"
-              className="h-10 rounded-xl border-border bg-white"
-            />
-            <p className="text-xs text-content-tertiary">Giới hạn số yêu cầu hình ảnh được xử lý đồng thời cho mỗi tài khoản, mặc định 3.</p>
-          </div>
-          <label className="flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-sm text-content">
+        <span className="hidden text-sm text-content-tertiary sm:block">Quản lý tự động & mức log</span>
+      </div>
+      <CardContent className="space-y-4 p-6">
+        <div className="space-y-3">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content transition hover:bg-surface-secondary/50">
             <Checkbox
               checked={Boolean(config?.auto_remove_invalid_accounts)}
               onCheckedChange={(checked) => setAutoRemoveInvalidAccounts(Boolean(checked))}
             />
             Tự động xóa tài khoản bất thường
           </label>
-          <label className="flex items-center gap-3 rounded-xl border border-border bg-white px-4 py-3 text-sm text-content">
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content transition hover:bg-surface-secondary/50">
             <Checkbox
               checked={Boolean(config?.auto_remove_rate_limited_accounts)}
               onCheckedChange={(checked) => setAutoRemoveRateLimitedAccounts(Boolean(checked))}
             />
             Tự động xóa tài khoản bị giới hạn tốc độ
           </label>
-          <div className="space-y-3 rounded-xl border border-border bg-white px-4 py-3">
-            <div>
-              <label className="text-sm text-content">Mức độ nhật ký bảng điều khiển</label>
-              <p className="mt-1 text-xs text-content-tertiary">Khi không chọn, sử dụng mặc định: info / warning / error.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {logLevelOptions.map((level) => (
-                <label key={level} className="flex items-center gap-2 text-sm capitalize text-content">
-                  <Checkbox
-                    checked={Boolean(config?.log_levels?.includes(level))}
-                    onCheckedChange={(checked) => setLogLevel(level, Boolean(checked))}
-                  />
-                  {level}
-                </label>
-              ))}
-            </div>
+        </div>
+        <div className="space-y-3 rounded-xl border border-border bg-surface px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-content">Mức độ nhật ký</p>
+            <p className="mt-0.5 text-xs text-content-tertiary">Mặc định: info / warning / error.</p>
           </div>
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-sm text-content">System prompt toàn cục</label>
-            <Textarea
-              value={String(config?.global_system_prompt || "")}
-              onChange={(event) => setGlobalSystemPrompt(event.target.value)}
-              placeholder="Ví dụ: Trước tiên xác định xem prompt của người dùng có tuân thủ không; Từ chối trả lời các yêu cầu bất hợp pháp, khiêu dâm, bạo lực, thù địch, v.v."
-              className="min-h-28 rounded-xl border-border bg-white font-mono text-xs shadow-none"
-            />
-            <p className="text-xs text-content-tertiary">Sẽ được tiêm vào dưới dạng thông báo system trong mỗi yêu cầu, có thể được sử dụng để kiểm duyệt prompt của người dùng, tránh nội dung vi phạm, thống nhất hạn chế hành vi mô hình hoặc thiết lập vai trò cố định.</p>
+          <div className="grid grid-cols-2 gap-2">
+            {logLevelOptions.map((level) => (
+              <label key={level} className="flex cursor-pointer items-center gap-2 text-sm capitalize text-content">
+                <Checkbox
+                  checked={Boolean(config?.log_levels?.includes(level))}
+                  onCheckedChange={(checked) => setLogLevel(level, Boolean(checked))}
+                />
+                {level}
+              </label>
+            ))}
           </div>
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-sm text-content">Từ khoá nhạy cảm</label>
-            <Textarea
-              value={(config?.sensitive_words || []).join("\n")}
-              onChange={(event) => setSensitiveWordsText(event.target.value)}
-              placeholder="Một cái mỗi hàng, từ chối ngay khi gặp"
-              className="min-h-28 rounded-xl border-border bg-white font-mono text-xs shadow-none"
-            />
-            <p className="text-xs text-content-tertiary">Miễn là yêu cầu của người dùng chứa bất kỳ từ khóa nhạy cảm nào, hãy trả lời từ chối trực tiếp.</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ContentCard() {
+  const config = useSettingsStore((state) => state.config);
+  const setGlobalSystemPrompt = useSettingsStore((state) => state.setGlobalSystemPrompt);
+  const setSensitiveWordsText = useSettingsStore((state) => state.setSensitiveWordsText);
+
+  return (
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-surface-secondary">
+            <FileText className="size-4 text-content-secondary" />
           </div>
-          <div className="space-y-4 rounded-xl border border-border bg-white px-4 py-3 md:col-span-2">
-            <label className="flex items-center gap-3 text-sm text-content">
+          <h2 className="font-semibold text-content">Nội dung</h2>
+        </div>
+        <span className="hidden text-sm text-content-tertiary sm:block">System prompt & từ khoá nhạy cảm</span>
+      </div>
+      <CardContent className="space-y-4 p-6">
+        <div className="space-y-2">
+          <label className="text-sm text-content">System prompt toàn cục</label>
+          <Textarea
+            value={String(config?.global_system_prompt || "")}
+            onChange={(e) => setGlobalSystemPrompt(e.target.value)}
+            placeholder="Ví dụ: Từ chối trả lời các yêu cầu bất hợp pháp, khiêu dâm, bạo lực..."
+            className="min-h-28 rounded-xl border-border bg-surface font-mono text-xs shadow-none"
+          />
+          <p className="text-xs text-content-tertiary">Được tiêm vào dưới dạng thông báo system trong mỗi yêu cầu.</p>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm text-content">Từ khoá nhạy cảm</label>
+          <Textarea
+            value={(config?.sensitive_words || []).join("\n")}
+            onChange={(e) => setSensitiveWordsText(e.target.value)}
+            placeholder="Một từ mỗi hàng, từ chối ngay khi gặp"
+            className="min-h-28 rounded-xl border-border bg-surface font-mono text-xs shadow-none"
+          />
+          <p className="text-xs text-content-tertiary">Từ chối trực tiếp khi yêu cầu chứa bất kỳ từ khoá nhạy cảm nào.</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function AIReviewCard() {
+  const config = useSettingsStore((state) => state.config);
+  const setAIReviewField = useSettingsStore((state) => state.setAIReviewField);
+
+  return (
+    <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-surface-secondary">
+            <Sparkles className="size-4 text-content-secondary" />
+          </div>
+          <div className="flex items-center gap-4">
+            <h2 className="font-semibold text-content">Kiểm duyệt AI</h2>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-content-tertiary">
               <Checkbox
                 checked={Boolean(config?.ai_review?.enabled)}
                 onCheckedChange={(checked) => setAIReviewField("enabled", Boolean(checked))}
               />
-              Bật kiểm duyệt AI
+              Bật
             </label>
-            <p className="text-xs leading-6 text-content-tertiary">
-              Sau khi bật, mô hình kiểm duyệt sẽ được gọi trước khi yêu cầu được gửi đến tài khoản tạo hình ảnh. Nếu kiểm duyệt không vượt qua, hãy từ chối trực tiếp để giảm nguy cơ prompt vi phạm tiếp cận tài khoản gây ra rủi ro kiểm soát hoặc cấm.
-            </p>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <label className="text-sm text-content">Base URL</label>
-                <Input value={String(config?.ai_review?.base_url || "")} onChange={(event) => setAIReviewField("base_url", event.target.value)} placeholder="https://api.openai.com" className="h-10 rounded-xl border-border bg-white" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-content">API Key</label>
-                <Input value={String(config?.ai_review?.api_key || "")} onChange={(event) => setAIReviewField("api_key", event.target.value)} placeholder="sk-..." className="h-10 rounded-xl border-border bg-white" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm text-content">Model</label>
-                <Input value={String(config?.ai_review?.model || "")} onChange={(event) => setAIReviewField("model", event.target.value)} placeholder="gpt-5.4-mini" className="h-10 rounded-xl border-border bg-white" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm text-content">Prompt kiểm duyệt</label>
-              <Textarea value={String(config?.ai_review?.prompt || "")} onChange={(event) => setAIReviewField("prompt", event.target.value)} placeholder="Xác định xem yêu cầu của người dùng có được phép hay không. Chỉ trả lời ALLOW hoặc REJECT." className="min-h-24 rounded-xl border-border bg-white text-xs shadow-none" />
-            </div>
           </div>
         </div>
-
-        <div className="flex justify-end">
-          <Button
-            className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
-            onClick={() => void saveConfig()}
-            disabled={isSavingConfig}
-          >
-            {isSavingConfig ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
-            Lưu
-          </Button>
+        <span className="hidden text-sm text-content-tertiary sm:block">Lọc prompt trước khi xử lý</span>
+      </div>
+      <CardContent className="space-y-4 p-6">
+        <p className="text-sm leading-6 text-content-tertiary">
+          Sau khi bật, mô hình kiểm duyệt sẽ được gọi trước khi yêu cầu được gửi đến tài khoản tạo ảnh. Không vượt qua sẽ bị từ chối trực tiếp.
+        </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <label className="text-sm text-content">Base URL</label>
+            <Input value={String(config?.ai_review?.base_url || "")} onChange={(e) => setAIReviewField("base_url", e.target.value)} placeholder="https://api.openai.com" className="h-10 rounded-xl border-border bg-surface" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-content">API Key</label>
+            <Input value={String(config?.ai_review?.api_key || "")} onChange={(e) => setAIReviewField("api_key", e.target.value)} placeholder="sk-..." className="h-10 rounded-xl border-border bg-surface" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-content">Model</label>
+            <Input value={String(config?.ai_review?.model || "")} onChange={(e) => setAIReviewField("model", e.target.value)} placeholder="gpt-4o-mini" className="h-10 rounded-xl border-border bg-surface" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm text-content">Prompt kiểm duyệt</label>
+          <Textarea value={String(config?.ai_review?.prompt || "")} onChange={(e) => setAIReviewField("prompt", e.target.value)} placeholder="Xác định xem yêu cầu có được phép không. Chỉ trả lời ALLOW hoặc REJECT." className="min-h-24 rounded-xl border-border bg-surface text-xs shadow-none" />
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function ConfigSaveButton() {
+  const isSavingConfig = useSettingsStore((state) => state.isSavingConfig);
+  const saveConfig = useSettingsStore((state) => state.saveConfig);
+
+  return (
+    <div className="flex justify-end">
+      <Button
+        className="h-10 rounded-xl bg-primary-600 px-6 text-white hover:bg-primary-700"
+        onClick={() => void saveConfig()}
+        disabled={isSavingConfig}
+      >
+        {isSavingConfig ? <LoaderCircle className="size-4 animate-spin" /> : <Save className="size-4" />}
+        Lưu cài đặt
+      </Button>
+    </div>
+  );
+}
+
+export function ConfigCard() {
+  return (
+    <div className="space-y-4">
+      <SystemSettingsCard />
+      <ProxyCard />
+      <AccountLogsCard />
+      <ContentCard />
+      <AIReviewCard />
+      <ConfigSaveButton />
+    </div>
   );
 }

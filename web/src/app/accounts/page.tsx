@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   Ban,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { usePageHeaderActions } from "@/components/app-shell/page-header-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -166,6 +167,7 @@ function displayAccountType(account: Account) {
 }
 
 function AccountsPageContent() {
+  const { setActions } = usePageHeaderActions();
   const didLoadRef = useRef(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -243,6 +245,37 @@ function AccountsPageContent() {
     ],
     [accounts],
   );
+
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    setPage(1);
+  }, []);
+
+  const handleTypeChange = useCallback((value: string) => {
+    setTypeFilter(value);
+    setPage(1);
+  }, []);
+
+  const handleStatusChange = useCallback((value: string) => {
+    setStatusFilter(value as AccountStatus | "all");
+    setPage(1);
+  }, []);
+
+  const isBusy = isLoading || isRefreshing || isDeleting;
+
+  useEffect(() => {
+    setActions(
+      <AccountImportDialog
+        disabled={isBusy}
+        onImported={(items) => {
+          setAccounts(items);
+          setSelectedIds([]);
+          setPage(1);
+        }}
+      />,
+    );
+    return () => setActions(null);
+  }, [isBusy, setActions]);
 
   const selectedTokens = useMemo(() => {
     const selectedSet = new Set(selectedIds);
@@ -351,52 +384,70 @@ function AccountsPageContent() {
 
   return (
     <>
-      <section className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="space-y-1">
-          <div className="text-xs font-semibold tracking-[0.18em] text-content-tertiary uppercase">
-            Account Pool
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Quản lý tài khoản</h1>
+      <div className="mb-6 flex flex-wrap gap-4">
+        <div className="relative w-64">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-content-tertiary" />
+          <Input
+            value={query}
+            onChange={(event) => handleQueryChange(event.target.value)}
+            placeholder="Tìm theo email"
+            className="h-10 rounded-xl border-border bg-surface pl-10"
+          />
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        <Select value={typeFilter} onValueChange={handleTypeChange}>
+          <SelectTrigger className="h-10 w-40 rounded-xl border-border bg-surface">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {accountTypeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={handleStatusChange}>
+          <SelectTrigger className="h-10 w-40 rounded-xl border-border bg-surface">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {accountStatusOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-border bg-surface px-4 text-content hover:bg-white"
+            className="h-10 rounded-xl border-border bg-surface px-3 text-content hover:bg-surface"
             onClick={() => void loadAccounts()}
-            disabled={isLoading || isRefreshing || isDeleting}
+            disabled={isBusy}
           >
             <RefreshCw className={cn("size-4", isLoading ? "animate-spin" : "")} />
             Làm mới
           </Button>
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-border bg-surface px-4 text-content hover:bg-white"
+            className="h-10 rounded-xl border-border bg-surface px-3 text-content hover:bg-surface"
             onClick={() => void handleRefreshAccounts(accounts.map((item) => item.access_token))}
-            disabled={isLoading || isRefreshing || isDeleting || accounts.length === 0}
+            disabled={isBusy || accounts.length === 0}
           >
             <RefreshCw className={cn("size-4", isRefreshing ? "animate-spin" : "")} />
-            Làm mới toàn bộ thông tin và hạn mức tài khoản
+            Làm mới toàn bộ
           </Button>
-          <AccountImportDialog
-            disabled={isLoading || isRefreshing || isDeleting}
-            onImported={(items) => {
-              setAccounts(items);
-              setSelectedIds([]);
-              setPage(1);
-            }}
-          />
           <Button
             variant="outline"
-            className="h-10 rounded-xl border-border bg-surface px-4 text-content hover:bg-white"
+            className="h-10 rounded-xl border-border bg-surface px-3 text-content hover:bg-surface"
             onClick={() => downloadTokens(accounts)}
             disabled={accounts.length === 0}
           >
             <Download className="size-4" />
-            Xuất toàn bộ Token
+            Xuất Token
           </Button>
         </div>
-      </section>
+      </div>
 
       <Dialog open={Boolean(editingAccount)} onOpenChange={(open) => (!open ? setEditingAccount(null) : null)}>
         <DialogContent showCloseButton={false} className="rounded-2xl p-6">
@@ -410,7 +461,7 @@ function AccountsPageContent() {
             <div className="space-y-2">
               <label className="text-sm font-medium text-content">Trạng thái</label>
               <Select value={editStatus} onValueChange={(value) => setEditStatus(value as AccountStatus)}>
-                <SelectTrigger className="h-11 rounded-xl border-border bg-white">
+                <SelectTrigger className="h-11 rounded-xl border-border bg-surface">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -452,7 +503,7 @@ function AccountsPageContent() {
             const Icon = item.icon;
             const value = summary[item.key];
             return (
-              <Card key={item.key} className="rounded-2xl border-white/80 bg-surface shadow-sm">
+              <Card key={item.key} className="rounded-2xl border-border/80 bg-surface shadow-sm">
                 <CardContent className="p-4">
                   <div className="mb-4 flex items-start justify-between">
                     <span className="text-xs font-medium text-content-tertiary">{item.label}</span>
@@ -471,68 +522,15 @@ function AccountsPageContent() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold tracking-tight">Danh sách tài khoản</h2>
-            <Badge variant="secondary" className="rounded-lg bg-surface-tertiary px-2 py-0.5 text-content">
-              {filteredAccounts.length}
-            </Badge>
-          </div>
-
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
-            <div className="relative min-w-[260px]">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-content-tertiary" />
-              <Input
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Tìm theo email"
-                className="h-10 rounded-xl border-border bg-white/85 pl-10"
-              />
-            </div>
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => {
-                setTypeFilter(value);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-10 w-full rounded-xl border-border bg-white/85 lg:w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {accountTypeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value as AccountStatus | "all");
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-10 w-full rounded-xl border-border bg-white/85 lg:w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {accountStatusOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">Danh sách tài khoản</h2>
+          <Badge variant="secondary" className="rounded-lg bg-surface-tertiary px-2 py-0.5 text-content">
+            {filteredAccounts.length}
+          </Badge>
         </div>
 
         {isLoading && accounts.length === 0 ? (
-          <Card className="rounded-2xl border-white/80 bg-surface shadow-sm">
+          <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
             <CardContent className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
               <div className="rounded-xl bg-surface-secondary p-3 text-content-tertiary">
                 <LoaderCircle className="size-5 animate-spin" />
@@ -547,7 +545,7 @@ function AccountsPageContent() {
 
         <Card
           className={cn(
-            "overflow-hidden rounded-2xl border-white/80 bg-surface shadow-sm",
+            "overflow-hidden rounded-2xl border-border/80 bg-surface shadow-sm",
             isLoading && accounts.length === 0 ? "hidden" : "",
           )}
         >
@@ -749,7 +747,7 @@ function AccountsPageContent() {
                     setPage(1);
                   }}
                 >
-                  <SelectTrigger className="h-10 w-[108px] shrink-0 rounded-lg border-border bg-white text-sm leading-none">
+                  <SelectTrigger className="h-10 w-[108px] shrink-0 rounded-lg border-border bg-surface text-sm leading-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -762,7 +760,7 @@ function AccountsPageContent() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-10 shrink-0 rounded-lg border-border bg-white"
+                  className="size-10 shrink-0 rounded-lg border-border bg-surface"
                   disabled={safePage <= 1}
                   onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 >
@@ -781,7 +779,7 @@ function AccountsPageContent() {
                         "h-10 min-w-10 shrink-0 rounded-lg px-3",
                         item === safePage
                           ? "bg-primary-600 text-white hover:bg-primary-700"
-                          : "border-border bg-white text-content",
+                          : "border-border bg-surface text-content",
                       )}
                       onClick={() => setPage(item)}
                     >
@@ -792,7 +790,7 @@ function AccountsPageContent() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="size-10 shrink-0 rounded-lg border-border bg-white"
+                  className="size-10 shrink-0 rounded-lg border-border bg-surface"
                   disabled={safePage >= pageCount}
                   onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
                 >

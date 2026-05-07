@@ -13,12 +13,20 @@ type LightboxImage = {
   dimensions?: string;
 };
 
+type RevisionNav = {
+  slot: number;
+  total: number;
+  onPrev: () => void;
+  onNext: () => void;
+};
+
 type ImageLightboxProps = {
   images: LightboxImage[];
   currentIndex: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onIndexChange: (index: number) => void;
+  revisionNav?: RevisionNav;
 };
 
 type ImageTransform = {
@@ -52,7 +60,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getTouchDistance(touches: TouchList) {
+function getTouchDistance(touches: React.TouchList) {
   const first = touches[0];
   const second = touches[1];
   return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
@@ -78,6 +86,7 @@ export function ImageLightbox({
   open,
   onOpenChange,
   onIndexChange,
+  revisionNav,
 }: ImageLightboxProps) {
   const gestureRef = useRef<TouchGesture | null>(null);
   const lastTapRef = useRef(0);
@@ -124,24 +133,41 @@ export function ImageLightbox({
     if (!current) return;
     const src = current.src;
     const filename = `image-${current.id}.png`;
-    try {
-      const response = await fetch(src);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+
+    const triggerBlobDownload = (blobUrl: string) => {
       const link = document.createElement("a");
+      link.style.display = "none";
       link.href = blobUrl;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      // Delay cả removeChild và revokeObjectURL để browser kịp xử lý download
+      setTimeout(() => {
+        link.remove();
+        URL.revokeObjectURL(blobUrl);
+      }, 2000);
+    };
+
+    try {
+      let blobUrl: string;
+      if (src.startsWith("data:")) {
+        const [header, base64 = ""] = src.split(",", 2);
+        const mime = header.match(/data:(.*?);/)?.[1] || "image/png";
+        // API có thể trả về base64 có whitespace/line-breaks → phải strip trước atob
+        const cleanBase64 = base64.replace(/\s/g, "");
+        const binary = atob(cleanBase64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
+      } else {
+        const response = await fetch(src);
+        if (!response.ok) throw new Error("fetch failed");
+        blobUrl = URL.createObjectURL(await response.blob());
+      }
+      triggerBlobDownload(blobUrl);
     } catch {
-      const link = document.createElement("a");
-      link.href = src;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // External URL hoặc data URL lỗi: mở tab mới
+      window.open(src, "_blank", "noopener,noreferrer");
     }
   }, [current]);
 
@@ -283,10 +309,10 @@ export function ImageLightbox({
             <button
               type="button"
               onClick={() => void handleDownload()}
-              className="inline-flex size-9 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70"
+              className="inline-flex size-10 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70"
               aria-label="Tải xuống ảnh"
             >
-              <Download className="size-4" />
+              <Download className="size-5" />
             </button>
             <DialogPrimitive.Close className="inline-flex size-9 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70">
               <X className="size-4" />
@@ -341,6 +367,32 @@ export function ImageLightbox({
               <ChevronRight className="size-5" />
             </button>
           )}
+
+          {revisionNav && revisionNav.total > 1 ? (
+            <div className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1.5 backdrop-blur-sm">
+              <button
+                type="button"
+                onClick={revisionNav.onPrev}
+                disabled={revisionNav.slot === 0}
+                className="inline-flex size-7 items-center justify-center rounded-full transition hover:bg-white/20 disabled:opacity-30"
+                aria-label="Phiên bản cũ hơn"
+              >
+                <ChevronLeft className="size-4 text-white" />
+              </button>
+              <span className="min-w-[7rem] text-center text-xs font-medium tabular-nums text-white/90">
+                Phiên bản {revisionNav.slot + 1} / {revisionNav.total}
+              </span>
+              <button
+                type="button"
+                onClick={revisionNav.onNext}
+                disabled={revisionNav.slot >= revisionNav.total - 1}
+                className="inline-flex size-7 items-center justify-center rounded-full transition hover:bg-white/20 disabled:opacity-30"
+                aria-label="Phiên bản mới hơn"
+              >
+                <ChevronRight className="size-4 text-white" />
+              </button>
+            </div>
+          ) : null}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

@@ -5,12 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ROUTE_META, SIDEBAR_ORDER } from "./route-meta";
+import { ROUTE_META, SIDEBAR_ORDER, normalizePathname } from "./route-meta";
 import { getValidatedAuthSession } from "@/lib/auth-session";
 import { clearStoredAuthSession, type StoredAuthSession } from "@/store/auth";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const currentPath = normalizePathname(pathname);
   const router = useRouter();
   const [session, setSession] = useState<StoredAuthSession | null | undefined>(undefined);
 
@@ -53,7 +54,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-1">
         {items.map(({ path, meta }) => {
-          const active = pathname === path;
+          const active = currentPath === path;
           return (
             <Link
               key={path}

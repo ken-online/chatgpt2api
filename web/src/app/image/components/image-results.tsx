@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Clock3, LoaderCircle, RotateCcw, Sparkles, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, Download, LoaderCircle, Plus, RotateCcw, Scissors, Sparkles, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { removeBackground } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { ImageConversation, ImageTurnStatus, StoredImage, StoredReferenceImage } from "@/store/image-conversations";
+import { PixelcutAuthDialog, PIXELCUT_ORG_KEY, PIXELCUT_TOKEN_KEY } from "./pixelcut-auth-dialog";
 
 export type ImageLightboxItem = {
   id: string;
@@ -16,14 +18,20 @@ export type ImageLightboxItem = {
 
 type ImageResultsProps = {
   selectedConversation: ImageConversation | null;
-  onOpenLightbox: (images: ImageLightboxItem[], index: number) => void;
+  onOpenLightbox: (images: ImageLightboxItem[], index: number, turnId?: string) => void;
   onContinueEdit: (conversationId: string, image: StoredImage | StoredReferenceImage) => void;
   onDeletePrompt: (conversationId: string, turnId: string) => void;
   onDeleteResults: (conversationId: string, turnId: string) => void;
   onReuseTurnConfig: (conversationId: string, turnId: string) => void | Promise<void>;
+  onReuseTurnConfigAsNew: (conversationId: string, turnId: string) => void | Promise<void>;
   onRegenerateTurn: (conversationId: string, turnId: string) => void | Promise<void>;
   onRetryImage: (conversationId: string, turnId: string, imageId: string) => void | Promise<void>;
   formatConversationTime: (value: string) => string;
+  turnRevisions: Record<string, StoredImage[][]>;
+  turnViewSlot: Record<string, number>;
+  onTurnViewSlotChange: (turnId: string, slot: number) => void;
+  removeBgResults: Record<string, string>;
+  onRemoveBgResult: (imageId: string, dataUrl: string, persistUrl: string, conversationId: string, turnId: string) => void;
 };
 
 function getStoredImageSrc(image: StoredImage) {
@@ -33,6 +41,24 @@ function getStoredImageSrc(image: StoredImage) {
   return image.url || "";
 }
 
+function getStatusDotColor(status: ImageTurnStatus) {
+  if (status === "success") return "bg-emerald-500";
+  if (status === "error") return "bg-rose-500";
+  if (status === "generating") return "bg-blue-500 animate-pulse";
+  return "bg-amber-500";
+}
+
+function getAspectClass(size: string) {
+  if (size === "16:9") return "aspect-[16/9]";
+  if (size === "9:16") return "aspect-[9/16]";
+  if (size === "4:3") return "aspect-[4/3]";
+  if (size === "3:4") return "aspect-[3/4]";
+  return "aspect-square";
+}
+
+const META_DOT = "•";
+
+
 export function ImageResults({
   selectedConversation,
   onOpenLightbox,
@@ -40,11 +66,71 @@ export function ImageResults({
   onDeletePrompt,
   onDeleteResults,
   onReuseTurnConfig,
+  onReuseTurnConfigAsNew,
   onRegenerateTurn,
   onRetryImage,
   formatConversationTime,
+  turnRevisions,
+  turnViewSlot,
+  onTurnViewSlotChange,
+  removeBgResults,
+  onRemoveBgResult: onRemoveBgResultProp,
 }: ImageResultsProps) {
   const [imageDimensions, setImageDimensions] = useState<Record<string, string>>({});
+  const [removingBgIds, setRemovingBgIds] = useState<Set<string>>(new Set());
+  const [showPixelcutAuth, setShowPixelcutAuth] = useState(false);
+  const [pendingRemoveBg, setPendingRemoveBg] = useState<{ id: string; src: string; conversationId: string; turnId: string } | null>(null);
+
+  const doRemoveBg = async (imageId: string, imageSrc: string, idToken: string, orgId: string, conversationId: string, turnId: string) => {
+    setRemovingBgIds((prev) => new Set(prev).add(imageId));
+    try {
+      let source: Parameters<typeof removeBackground>[0];
+      if (imageSrc.startsWith("data:")) {
+        const commaIndex = imageSrc.indexOf(",");
+        const mime = imageSrc.slice(0, commaIndex).match(/data:(.*?);/)?.[1] || "image/png";
+        source = { type: "b64", b64: imageSrc.slice(commaIndex + 1), mime };
+      } else {
+        source = { type: "url", url: imageSrc };
+      }
+      const result = await removeBackground(source, idToken, orgId);
+      const dataUrl = `data:image/png;base64,${result.b64_json}`;
+      onRemoveBgResultProp(imageId, dataUrl, result.image_url, conversationId, turnId);
+    } catch (error) {
+      if (error instanceof Error && error.message === "PIXELCUT_AUTH_EXPIRED") {
+        localStorage.removeItem(PIXELCUT_TOKEN_KEY);
+        localStorage.removeItem(PIXELCUT_ORG_KEY);
+        toast.error("Token Pixelcut hết hạn, vui lòng lấy token mới");
+        window.open("https://www.pixelcut.ai/ai-image-editor?tool=removeBackground", "_blank", "noopener,noreferrer");
+      } else {
+        toast.error(error instanceof Error ? error.message : "Xóa nền thất bại");
+      }
+    } finally {
+      setRemovingBgIds((prev) => {
+        const next = new Set(prev);
+        next.delete(imageId);
+        return next;
+      });
+    }
+  };
+
+  const handleRemoveBg = async (imageId: string, imageSrc: string, conversationId: string, turnId: string) => {
+    const idToken = localStorage.getItem(PIXELCUT_TOKEN_KEY);
+    const orgId = localStorage.getItem(PIXELCUT_ORG_KEY);
+    if (!idToken || !orgId) {
+      setPendingRemoveBg({ id: imageId, src: imageSrc, conversationId, turnId });
+      setShowPixelcutAuth(true);
+      return;
+    }
+    await doRemoveBg(imageId, imageSrc, idToken, orgId, conversationId, turnId);
+  };
+
+  const handlePixelcutAuthSaved = async (idToken: string, orgId: string) => {
+    const pending = pendingRemoveBg;
+    setPendingRemoveBg(null);
+    if (pending) {
+      await doRemoveBg(pending.id, pending.src, idToken, orgId, pending.conversationId, pending.turnId);
+    }
+  };
 
   const updateImageDimensions = (id: string, width: number, height: number) => {
     const dimensions = formatImageDimensions(width, height);
@@ -59,22 +145,15 @@ export function ImageResults({
   if (!selectedConversation) {
     return (
       <div className="flex h-full min-h-[260px] items-center justify-center text-center sm:min-h-[420px]">
-        <div className="w-full max-w-4xl">
-          <h1
-            className="text-2xl font-semibold tracking-tight text-content sm:text-3xl md:text-5xl"
-            style={{
-              fontFamily: '"Palatino Linotype","Book Antiqua","URW Palladio L","Times New Roman",serif',
-            }}
-          >
-            Turn ideas into images
-          </h1>
-          <p
-            className="mx-auto mt-3 max-w-[280px] text-sm italic tracking-[0.01em] text-content-tertiary sm:mt-4 sm:max-w-none sm:text-[15px]"
-            style={{
-              fontFamily: '"Palatino Linotype","Book Antiqua","URW Palladio L","Times New Roman",serif',
-            }}
-          >
-            Giữ lịch sử cục bộ và trạng thái công việc trong cùng một cửa sổ, và bắt đầu chỉnh sửa không trạng thái mới từ hình ảnh kết quả hiện có.
+        <div className="w-full max-w-md">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-surface-secondary">
+            <Sparkles className="size-5 text-content-secondary" />
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight text-content sm:text-2xl">
+            Biến ý tưởng thành hình ảnh
+          </h2>
+          <p className="mt-2 text-sm text-content-tertiary">
+            Nhập mô tả phía dưới để tạo ảnh, hoặc chọn cuộc trò chuyện cũ ở thanh bên.
           </p>
         </div>
       </div>
@@ -82,13 +161,20 @@ export function ImageResults({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[980px] flex-col gap-5 sm:gap-8">
+    <div className="flex w-full flex-col gap-6">
       {selectedConversation.turns.map((turn, turnIndex) => {
+        const revisions = turnRevisions[turn.id] || [];
+        const totalSlots = revisions.length + 1;
+        const isLive = turn.status === "queued" || turn.status === "generating";
+        const viewSlot = turnViewSlot[turn.id] ?? totalSlots - 1;
+        const isViewingCurrent = viewSlot >= totalSlots - 1;
+        const displayImages = isViewingCurrent ? turn.images : (revisions[viewSlot] ?? turn.images);
+
         const referenceLightboxImages = turn.referenceImages.map((image, index) => ({
           id: `${turn.id}-reference-${index}`,
           src: image.dataUrl,
         }));
-        const successfulTurnImages = turn.images.flatMap((image) => {
+        const successfulTurnImages = displayImages.flatMap((image) => {
           const src = image.status === "success" ? getStoredImageSrc(image) : "";
           return src
             ? [
@@ -103,32 +189,88 @@ export function ImageResults({
         });
 
         return (
-          <div key={turn.id} className="flex flex-col gap-3 sm:gap-4">
+          <div key={turn.id} className="flex flex-col gap-3">
+            {/* Prompt bubble — bên phải */}
             {!turn.promptDeleted ? (
               <div className="flex justify-end">
-                <div className="max-w-[90%] px-1 py-1 text-[14px] leading-6 text-content sm:max-w-[82%] sm:text-[15px] sm:leading-7">
-                  <div className="mb-1.5 flex flex-wrap justify-end gap-2 text-[11px] text-content-tertiary sm:mb-2">
+                <div className="group/prompt max-w-[80%]">
+                  {/* Card chứa prompt + ảnh tham chiếu */}
+                  <div className="overflow-hidden rounded-2xl bg-surface-secondary">
+                    <div className="px-4 py-3 text-[14px] leading-6 text-content whitespace-pre-wrap break-words sm:text-[15px] sm:leading-7">
+                      {turn.prompt}
+                    </div>
+                    {turn.referenceImages.length > 0 ? (
+                      <div className="border-t border-border/20 px-4 pb-3 pt-2.5">
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-content-tertiary">
+                          Tham chiếu
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {turn.referenceImages.map((image, index) => (
+                            <div key={`${turn.id}-${image.name}-${index}`} className="group/ref relative">
+                              <div className="pointer-events-none absolute inset-0 rounded-lg bg-black/0 transition group-hover/ref:bg-black/25" />
+                              <button
+                                type="button"
+                                onClick={() => onOpenLightbox(referenceLightboxImages, index)}
+                                className="block max-h-24 max-w-[120px] cursor-zoom-in overflow-hidden rounded-lg bg-surface/50 ring-1 ring-border/40"
+                                aria-label={`Xem ảnh tham chiếu ${index + 1}`}
+                              >
+                                <img
+                                  src={image.dataUrl}
+                                  alt={image.name || `Ảnh tham chiếu ${index + 1}`}
+                                  className="block h-auto max-h-24 w-auto max-w-[120px] object-contain"
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onContinueEdit(selectedConversation.id, image)}
+                                className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 rounded-md bg-black/65 px-1.5 py-0.5 text-[11px] text-white opacity-0 backdrop-blur-sm transition hover:bg-primary-600 group-hover/ref:opacity-100"
+                                title="Sửa từ ảnh này"
+                              >
+                                <Sparkles className="size-2.5" />
+                                Sửa
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Metadata */}
+                  <div className="mt-1.5 flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 px-1 text-[11px] text-content-tertiary">
                     <span>Lần {turnIndex + 1}</span>
-                    <span>
-                      {turn.mode === "edit" ? "Chỉnh sửa ảnh" : "Tạo từ văn bản"}
-                    </span>
-                    <span>{getTurnStatusLabel(turn.status)}</span>
+                    <span className="text-content-tertiary/50">{META_DOT}</span>
+                    <span>{turn.mode === "edit" ? "Chỉnh sửa" : "Tạo từ văn bản"}</span>
+                    <span className="text-content-tertiary/50">{META_DOT}</span>
                     <span>{formatConversationTime(turn.createdAt)}</span>
                   </div>
-                  <div className="text-right">{turn.prompt}</div>
-                  <div className="mt-2 flex flex-wrap justify-end gap-1.5">
+
+                  {/* Buttons hành động — dòng riêng */}
+                  <div className="mt-1 flex items-center justify-end gap-1 px-1">
                     <button
                       type="button"
                       onClick={() => void onReuseTurnConfig(selectedConversation.id, turn.id)}
-                      className="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 text-[11px] font-medium text-content-secondary transition hover:bg-surface-tertiary hover:text-content"
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-content-tertiary transition hover:bg-surface-secondary hover:text-content"
+                      title="Dùng lại trong cuộc hội thoại này"
                     >
-                      Sử dụng lại cấu hình
+                      <Sparkles className="size-3" />
+                      Dùng lại
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onReuseTurnConfigAsNew(selectedConversation.id, turn.id)}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-content-tertiary transition hover:bg-surface-secondary hover:text-content"
+                      title="Dùng lại cho cuộc hội thoại mới"
+                    >
+                      <Plus className="size-3" />
+                      Tạo mới
                     </button>
                     <button
                       type="button"
                       onClick={() => onDeletePrompt(selectedConversation.id, turn.id)}
-                      className="inline-flex size-6 items-center justify-center rounded-full text-content-tertiary transition hover:bg-rose-50 hover:text-rose-500"
-                      aria-label="Xoá bản ghi dấu nhắc"
+                      className="inline-flex size-6 items-center justify-center rounded-md text-content-tertiary transition hover:bg-rose-500/10 hover:text-rose-500"
+                      aria-label="Xoá Prompt"
+                      title="Xoá Prompt"
                     >
                       <Trash2 className="size-3" />
                     </button>
@@ -137,190 +279,285 @@ export function ImageResults({
               </div>
             ) : null}
 
+            {/* Results — flat layout bên trái */}
             {!turn.resultsDeleted ? (
-              <div className="flex justify-start">
-                <div className="w-full p-1">
-                  {turn.referenceImages.length > 0 ? (
-                    <div className="mb-4 flex flex-col items-end">
-                      <div className="mb-3 text-xs font-medium text-content-tertiary">Ảnh tham chiếu lần này</div>
-                      <div className="flex flex-wrap justify-end gap-3">
-                        {turn.referenceImages.map((image, index) => (
-                          <div key={`${turn.id}-${image.name}-${index}`} className="flex flex-col items-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => onOpenLightbox(referenceLightboxImages, index)}
-                              className="group relative h-24 w-24 overflow-hidden border border-border/80 bg-surface-secondary/60 text-left transition hover:border-border"
-                              aria-label={`Xem trước ảnh tham chiếu ${image.name || index + 1}`}
-                            >
-                              <img
-                                src={image.dataUrl}
-                                alt={image.name || `Ảnh tham chiếu ${index + 1}`}
-                                className="absolute inset-0 h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
-                              />
-                            </button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="rounded-full border-border bg-white text-content hover:bg-surface-secondary"
-                              onClick={() => onContinueEdit(selectedConversation.id, image)}
-                            >
-                              <Sparkles className="size-4" />
-                              Bắt đầu chỉnh sửa
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+              <div className="flex flex-col gap-2.5">
+                <div
+                  className={cn(
+                    "relative",
+                    displayImages.length + displayImages.filter((img) => removeBgResults[img.id] || img.remove_bg_url).length === 1
+                      ? "max-w-lg"
+                      : "",
+                  )}
+                >
+                  {totalSlots > 1 ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => onTurnViewSlotChange(turn.id, viewSlot - 1)}
+                        disabled={viewSlot === 0}
+                        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 inline-flex size-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/75 disabled:opacity-20"
+                        title="Phiên bản cũ hơn"
+                      >
+                        <ChevronLeft className="size-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onTurnViewSlotChange(turn.id, viewSlot + 1)}
+                        disabled={isViewingCurrent}
+                        className="absolute right-2 top-1/2 z-10 -translate-y-1/2 inline-flex size-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/75 disabled:opacity-20"
+                        title="Phiên bản mới hơn"
+                      >
+                        <ChevronRight className="size-4" />
+                      </button>
+                    </>
                   ) : null}
 
-                  <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[11px] text-content-tertiary sm:mb-4 sm:gap-2 sm:text-xs">
-                    <span className="rounded-full bg-surface-secondary px-3 py-1">{turn.count} ảnh</span>
-                    <span className="rounded-full bg-surface-secondary px-3 py-1">{getTurnStatusLabel(turn.status)}</span>
-                    {turn.status === "queued" ? (
-                      <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">Chờ các công việc trước đó hoàn thành</span>
-                    ) : null}
-                  </div>
+                  <div
+                    className={cn(
+                      "gap-2 sm:gap-3 [&>*]:mb-2 sm:[&>*]:mb-3 [&>*]:break-inside-avoid",
+                      displayImages.length + displayImages.filter((img) => removeBgResults[img.id] || img.remove_bg_url).length === 1
+                        ? "columns-1"
+                        : "columns-2 sm:columns-3",
+                    )}
+                  >
+                  {displayImages.flatMap((image, index) => {
+                    const imageSrc = image.status === "success" ? getStoredImageSrc(image) : "";
+                    const placeholderAspect = getAspectClass(turn.size);
+                    const removeBgSrc = removeBgResults[image.id] || image.remove_bg_url;
 
-                  <div className="grid grid-cols-3 gap-2 sm:block sm:columns-2 sm:gap-4 sm:space-y-4 xl:columns-3">
-                    {turn.images.map((image, index) => {
-                      const imageSrc = image.status === "success" ? getStoredImageSrc(image) : "";
-                      if (image.status === "success" && imageSrc) {
-                        const currentIndex = successfulTurnImages.findIndex((item) => item.id === image.id);
-                        const sizeLabel = image.b64_json ? formatBase64ImageSize(image.b64_json) : "";
-                        const dimensions = imageDimensions[image.id];
-                        const imageMeta = [sizeLabel, dimensions].filter(Boolean).join(" · ");
-
-                        return (
-                          <div
-                            key={image.id}
-                            className="break-inside-avoid"
+                    if (image.status === "success" && imageSrc) {
+                      const currentIndex = successfulTurnImages.findIndex((item) => item.id === image.id);
+                      const originalCard = (
+                        <div
+                          key={image.id}
+                          className="group/img relative inline-block w-full overflow-hidden rounded-xl bg-surface-secondary"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => onOpenLightbox(successfulTurnImages, currentIndex, totalSlots > 1 ? turn.id : undefined)}
+                            className="block w-full cursor-zoom-in"
+                            aria-label={`Xem ảnh ${index + 1}`}
                           >
-                            <button
-                              type="button"
-                              onClick={() => onOpenLightbox(successfulTurnImages, currentIndex)}
-                              className="group block aspect-square w-full cursor-zoom-in overflow-hidden rounded-xl sm:aspect-auto"
-                            >
-                              <img
-                                src={imageSrc}
-                                alt={`Generated result ${index + 1}`}
-                                className="block h-full w-full object-cover transition duration-200 group-hover:brightness-90 sm:h-auto sm:object-contain"
-                                onLoad={(event) => {
-                                  updateImageDimensions(
-                                    image.id,
-                                    event.currentTarget.naturalWidth,
-                                    event.currentTarget.naturalHeight,
-                                  );
-                                }}
-                              />
-                            </button>
-                            <div className="flex flex-col gap-1 px-0.5 py-1 text-[10px] sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-3 sm:py-3 sm:text-xs">
-                              <div className="min-w-0 text-content-tertiary">
-                                <span>Kết quả {index + 1}</span>
-                                {imageMeta ? <span className="block text-content-tertiary sm:ml-2 sm:inline">{imageMeta}</span> : null}
-                              </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 w-fit rounded-full border-border bg-white px-2 text-[10px] text-content hover:bg-surface-secondary sm:h-8 sm:px-3 sm:text-xs"
-                                onClick={() => onContinueEdit(selectedConversation.id, image)}
-                              >
-                                <Sparkles className="size-3 sm:size-4" />
-                                Bắt đầu chỉnh sửa
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (image.status === "error") {
-                        return (
-                          <div
-                            key={image.id}
-                            className={cn(
-                              "break-inside-avoid overflow-hidden rounded-xl border border-rose-200 bg-rose-50 sm:rounded-none",
-                              "aspect-square",
-                              turn.size === "1:1" && "sm:aspect-square",
-                              turn.size === "16:9" && "sm:aspect-video",
-                              turn.size === "9:16" && "sm:aspect-[9/16]",
-                              turn.size === "4:3" && "sm:aspect-[4/3]",
-                              turn.size === "3:4" && "sm:aspect-[3/4]",
-                              !["1:1", "16:9", "9:16", "4:3", "3:4"].includes(turn.size) && "sm:aspect-square",
+                            <img
+                              src={imageSrc}
+                              alt={`Generated result ${index + 1}`}
+                              className="block h-auto w-full select-none transition duration-300 group-hover/img:scale-[1.02]"
+                              onLoad={(event) => {
+                                updateImageDimensions(
+                                  image.id,
+                                  event.currentTarget.naturalWidth,
+                                  event.currentTarget.naturalHeight,
+                                );
+                              }}
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onContinueEdit(selectedConversation.id, image)}
+                            className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-md bg-black/55 text-white opacity-0 backdrop-blur-sm transition hover:bg-black/70 group-hover/img:opacity-100"
+                            title="Tiếp tục chỉnh sửa"
+                            aria-label="Tiếp tục chỉnh sửa"
+                          >
+                            <Sparkles className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleRemoveBg(image.id, imageSrc, selectedConversation.id, turn.id);
+                            }}
+                            disabled={removingBgIds.has(image.id)}
+                            className="absolute right-2 top-10 inline-flex size-7 items-center justify-center rounded-md bg-black/55 text-white opacity-0 backdrop-blur-sm transition hover:bg-black/70 group-hover/img:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Xóa nền ảnh (Pixelcut)"
+                            aria-label="Xóa nền ảnh"
+                          >
+                            {removingBgIds.has(image.id) ? (
+                              <LoaderCircle className="size-3.5 animate-spin" />
+                            ) : (
+                              <Scissors className="size-3.5" />
                             )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadFile(imageSrc, `image-${image.id}.png`);
+                            }}
+                            className="absolute right-2 top-[4.5rem] inline-flex size-7 items-center justify-center rounded-md bg-black/55 text-white opacity-0 backdrop-blur-sm transition hover:bg-black/70 group-hover/img:opacity-100"
+                            title="Tải xuống ảnh"
+                            aria-label="Tải xuống ảnh"
                           >
-                            <div className="flex h-full min-h-16 flex-col items-center justify-center gap-1.5 px-2 py-2 text-center text-[11px] leading-4 text-rose-600 sm:gap-3 sm:px-6 sm:py-8 sm:text-sm sm:leading-6">
-                              <span className="line-clamp-2 sm:line-clamp-none">{image.error || "Tạo thất bại"}</span>
+                            <Download className="size-3.5" />
+                          </button>
+                        </div>
+                      );
+
+                      if (removeBgSrc) {
+                        const removeBgCard = (
+                          <div
+                            key={`removebg-${image.id}`}
+                            className="group/removebg relative inline-block w-full overflow-hidden rounded-xl"
+                            style={{
+                              backgroundImage:
+                                "linear-gradient(45deg,#d0d0d0 25%,transparent 25%),linear-gradient(-45deg,#d0d0d0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d0d0d0 75%),linear-gradient(-45deg,transparent 75%,#d0d0d0 75%)",
+                              backgroundSize: "16px 16px",
+                              backgroundPosition: "0 0,0 8px,8px -8px,-8px 0",
+                              backgroundColor: "#f5f5f5",
+                            }}
+                          >
+                            <img
+                              src={removeBgSrc}
+                              alt="Đã xóa nền"
+                              className="block h-auto w-full select-none"
+                            />
+                            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between opacity-0 transition group-hover/removebg:opacity-100">
+                              <span className="rounded-md bg-black/50 px-2 py-1 text-[11px] text-white/90 backdrop-blur-sm">
+                                Đã xóa nền
+                              </span>
                               <button
                                 type="button"
-                                onClick={() => void onRetryImage(selectedConversation.id, turn.id, image.id)}
-                                className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-rose-600 shadow-sm transition hover:bg-rose-100 sm:px-3 sm:text-xs"
+                                onClick={() => downloadFile(removeBgSrc, `nobg-${image.id}.png`)}
+                                className="inline-flex size-7 items-center justify-center rounded-md bg-black/55 text-white backdrop-blur-sm transition hover:bg-black/70"
+                                title="Tải xuống ảnh đã xóa nền"
+                                aria-label="Tải xuống"
                               >
-                                Tạo lại ảnh này
+                                <Download className="size-3.5" />
                               </button>
                             </div>
                           </div>
                         );
+                        return [originalCard, removeBgCard];
                       }
 
-                      return (
+                      return [originalCard];
+                    }
+
+                    if (image.status === "error") {
+                      return [
                         <div
                           key={image.id}
                           className={cn(
-                            "break-inside-avoid overflow-hidden rounded-xl border border-border/80 bg-surface-secondary/80 sm:rounded-none",
-                            turn.size === "1:1" && "aspect-square",
-                            turn.size === "16:9" && "aspect-video",
-                            turn.size === "9:16" && "aspect-[9/16]",
-                            turn.size === "4:3" && "aspect-[4/3]",
-                            turn.size === "3:4" && "aspect-[3/4]",
-                            !["1:1", "16:9", "9:16", "4:3", "3:4"].includes(turn.size) && "aspect-square",
+                            "flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-rose-50/70 px-3 text-center",
+                            placeholderAspect,
                           )}
                         >
-                          <div className="flex h-full flex-col items-center justify-center gap-1.5 px-2 py-3 text-center text-content-tertiary sm:gap-3 sm:px-6 sm:py-8">
-                            <div className="rounded-full bg-white p-2 shadow-sm sm:p-3">
-                              {turn.status === "queued" ? (
-                                <Clock3 className="size-4 sm:size-5" />
-                              ) : (
-                                <LoaderCircle className="size-4 animate-spin sm:size-5" />
-                              )}
-                            </div>
-                            <p className="text-[10px] leading-4 sm:text-sm">{turn.status === "queued" ? "Chờ xử lý" : "Đang xử lý"}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                          <span className="line-clamp-3 text-[11px] leading-4 text-rose-700">
+                            {image.error || "Tạo thất bại"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void onRetryImage(selectedConversation.id, turn.id, image.id)}
+                            className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-1 text-[11px] font-medium text-rose-600 shadow-sm transition hover:bg-surface-secondary"
+                          >
+                            <RotateCcw className="size-3" />
+                            Thử lại
+                          </button>
+                        </div>,
+                      ];
+                    }
 
-                  {turn.status === "error" && turn.error ? (
-                    <div className="mt-4 border-l-2 border-amber-300 bg-amber-50/70 px-4 py-3 text-sm leading-6 text-amber-700">
-                      {turn.error}
-                    </div>
+                    return [
+                      <div
+                        key={image.id}
+                        className={cn(
+                          "flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-surface-secondary text-content-tertiary",
+                          placeholderAspect,
+                        )}
+                      >
+                        {turn.status === "queued" ? (
+                          <Clock3 className="size-5" />
+                        ) : (
+                          <LoaderCircle className="size-5 animate-spin" />
+                        )}
+                        <p className="text-[11px]">{turn.status === "queued" ? "Chờ" : "Đang tạo"}</p>
+                      </div>,
+                    ];
+                  })}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-1 text-[11px] text-content-tertiary">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className={cn("size-1.5 shrink-0 rounded-full", getStatusDotColor(isViewingCurrent ? turn.status : "success"))} />
+                    <span>{getTurnStatusLabel(isViewingCurrent ? turn.status : "success")}</span>
+                  </span>
+                  <span className="text-content-tertiary/50">{META_DOT}</span>
+                  <span>{turn.count} ảnh</span>
+                  {turn.size ? (
+                    <>
+                      <span className="text-content-tertiary/50">{META_DOT}</span>
+                      <span>{turn.size}</span>
+                    </>
                   ) : null}
+                  {turn.status === "queued" && isViewingCurrent ? (
+                    <span className="ml-2 italic text-content-tertiary/80">chờ các công việc trước</span>
+                  ) : null}
+                </div>
 
-                  <div className="mt-3 flex items-center gap-1.5 text-[11px] sm:mt-4">
-                    <button
-                      type="button"
-                      onClick={() => void onRegenerateTurn(selectedConversation.id, turn.id)}
-                      className="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2.5 py-1 font-medium text-content-tertiary transition hover:bg-surface-tertiary hover:text-content"
-                    >
-                      <RotateCcw className="size-3" />
-                      Tạo lại
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteResults(selectedConversation.id, turn.id)}
-                      className="inline-flex size-6 items-center justify-center rounded-full text-content-tertiary transition hover:bg-rose-50 hover:text-rose-500"
-                      aria-label="Xoá kết quả tạo"
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
+                {totalSlots > 1 ? (
+                  <div className="text-center text-[11px] tabular-nums text-content-tertiary">
+                    Phiên bản {viewSlot + 1} / {totalSlots}
+                    {isLive && isViewingCurrent ? <span className="ml-1 animate-pulse">• đang tạo…</span> : null}
                   </div>
+                ) : null}
+
+                {turn.status === "error" && turn.error ? (
+                  <div className="rounded-lg bg-rose-50/70 px-3 py-2 text-xs leading-5 text-rose-700">
+                    {turn.error}
+                  </div>
+                ) : null}
+
+                <div className="flex items-center gap-1.5 px-1 text-[11px] text-content-tertiary">
+                  <button
+                    type="button"
+                    onClick={() => void onRegenerateTurn(selectedConversation.id, turn.id)}
+                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition hover:bg-surface-secondary hover:text-content"
+                  >
+                    <RotateCcw className="size-3" />
+                    <span>Tạo lại</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteResults(selectedConversation.id, turn.id)}
+                    className="inline-flex size-5 items-center justify-center rounded-md transition hover:bg-rose-50 hover:text-rose-500"
+                    aria-label="Xoá kết quả"
+                    title="Xoá kết quả"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
                 </div>
               </div>
             ) : null}
           </div>
         );
       })}
+      <PixelcutAuthDialog
+        open={showPixelcutAuth}
+        onOpenChange={setShowPixelcutAuth}
+        onAuthSaved={(idToken, orgId) => void handlePixelcutAuthSaved(idToken, orgId)}
+      />
     </div>
   );
+}
+
+function downloadFile(src: string, filename: string) {
+  let href: string;
+  if (src.startsWith("data:") || src.startsWith("blob:")) {
+    // data URL / blob URL — download trực tiếp
+    href = src;
+  } else {
+    // URL file trên server — dùng endpoint /api/download-image để browser download thay vì mở tab
+    const path = src.startsWith("http") ? new URL(src).pathname : src;
+    href = `/api/download-image?path=${encodeURIComponent(path)}&filename=${encodeURIComponent(filename)}`;
+  }
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => link.remove(), 1000);
 }
 
 function getTurnStatusLabel(status: ImageTurnStatus) {
