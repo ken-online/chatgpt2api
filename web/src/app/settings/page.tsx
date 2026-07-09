@@ -10,7 +10,9 @@ import { AIReviewCard, AccountLogsCard, ConfigSaveButton, ContentCard, ProxyCard
 import { CPAPoolDialog } from "./components/cpa-pool-dialog";
 import { CPAPoolsCard } from "./components/cpa-pools-card";
 import { ImportBrowserDialog } from "./components/import-browser-dialog";
+import { ProxyRuntimeCard } from "./components/proxy-runtime-card";
 import { Sub2APIConnections } from "./components/sub2api-connections";
+import { ThirdPartyAppsCard } from "./components/third-party-apps-card";
 import { UserKeysCard } from "./components/user-keys-card";
 import { useSettingsStore } from "./store";
 
@@ -67,6 +69,8 @@ function SettingsPageContent() {
         <div className="space-y-4">
           <SystemSettingsCard />
           <ContentCard />
+          <ProxyRuntimeCard />
+          <ThirdPartyAppsCard />
           <AIReviewCard />
           <BackupSettingsCard />
           <ConfigSaveButton />

@@ -11,7 +11,9 @@ import {
   CircleOff,
   Copy,
   Download,
+  Link2,
   LoaderCircle,
+  LogIn,
   Pencil,
   RefreshCw,
   Search,
@@ -44,10 +46,18 @@ import {
 import {
   deleteAccounts,
   fetchAccounts,
+  fetchModels,
+  fetchRefreshProgress,
+  fetchReLoginProgress,
+  reLoginAccounts,
   refreshAccounts,
+  testProxy,
   updateAccount,
   type Account,
+  type AccountRefreshResponse,
   type AccountStatus,
+  type Model,
+  type RefreshProgressResponse,
 } from "@/lib/api";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 import { cn } from "@/lib/utils";
@@ -90,7 +100,7 @@ function isUnlimitedImageQuotaAccount(account: Account) {
 }
 
 function imageQuotaUnknown(account: Account) {
-  return Boolean(account.image_quota_unknown);
+  return Boolean((account as any).image_quota_unknown);
 }
 
 function formatCompact(value: number) {
@@ -166,10 +176,22 @@ function displayAccountType(account: Account) {
   return account.type || "Free";
 }
 
+function displayAccountSource(account: Account) {
+  const source = String(account.source_type || "").trim().toLowerCase();
+  if (!source) {
+    return "web";
+  }
+  if (source === "web") {
+    return "web";
+  }
+  return source;
+}
+
 function AccountsPageContent() {
   const { setActions } = usePageHeaderActions();
   const didLoadRef = useRef(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -178,10 +200,30 @@ function AccountsPageContent() {
   const [pageSize, setPageSize] = useState("10");
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [editStatus, setEditStatus] = useState<AccountStatus>("正常");
+  const [editProxy, setEditProxy] = useState("");
+  const [isTestingProxy, setIsTestingProxy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshingTokens, setRefreshingTokens] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isRelogining, setIsRelogining] = useState(false);
+  const [progress, setProgress] = useState<{
+    visible: boolean;
+    current: number;
+    total: number;
+    message: string;
+    email: string;
+  }>({
+    visible: false,
+    current: 0,
+    total: 0,
+    message: "",
+    email: "",
+  });
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [refreshSummary, setRefreshSummary] = useState<Record<string, number | string> | null>(null);
 
   const loadAccounts = async (silent = false) => {
     if (!silent) {
@@ -201,12 +243,31 @@ function AccountsPageContent() {
     }
   };
 
+  const loadModels = async () => {
+    setIsLoadingModels(true);
+    try {
+      const data = await fetchModels();
+      setAvailableModels(Array.isArray(data.data) ? data.data : []);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể tải danh sách mô hình";
+      toast.error(message);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
   useEffect(() => {
     if (didLoadRef.current) {
       return;
     }
     didLoadRef.current = true;
     void loadAccounts();
+    void loadModels();
+
+    // Dọn dẹp timer tiến trình
+    return () => {
+      if (progressRef.current) clearInterval(progressRef.current);
+    };
   }, []);
 
   const filteredAccounts = useMemo(() => {
@@ -326,20 +387,165 @@ function AccountsPageContent() {
       return;
     }
 
+    if (accessTokens.length === 1) {
+      setRefreshingTokens((prev) => new Set([...prev, accessTokens[0]]));
+      try {
+        const { progress_id } = await refreshAccounts(accessTokens);
+        // Tài khoản đơn: lẫy thăm chờ hoàn thành
+        await pollRefreshProgress(progress_id, (progress) => {
+          if (progress.done && progress.result) {
+            setAccounts(progress.result.items);
+            setSelectedIds((prev) => prev.filter((id) => progress.result!.items.some((item) => item.access_token === id)));
+          }
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Không thể làm mới tài khoản";
+        toast.error(message);
+      } finally {
+        setRefreshingTokens((prev) => {
+          const next = new Set(prev);
+          next.delete(accessTokens[0]);
+          return next;
+        });
+      }
+      return;
+    }
+
     setIsRefreshing(true);
+
+    // Tính cơ sở của tài khoản chưa chọn (liên kết thống kê card)
+    const selectedTokenSet = new Set(accessTokens);
+    const baseAccountsList = accounts.filter((a) => !selectedTokenSet.has(a.access_token));
+    const baseActive = baseAccountsList.filter((a) => a.status === "正常").length;
+    const baseLimited = baseAccountsList.filter((a) => a.status === "限流").length;
+    const baseAbnormal = baseAccountsList.filter((a) => a.status === "异常").length;
+    const baseDisabled = baseAccountsList.filter((a) => a.status === "禁用").length;
+    const baseNormalAccounts = baseAccountsList.filter((a) => a.status === "正常");
+    const baseQuotaNum = baseNormalAccounts.reduce((s, a) => s + Math.max(0, a.quota), 0);
+
+    // Hiển thị thanh tiến trình (chỉ tác vụ hiện tại, không có thống kê phân loại)
+    const total = accessTokens.length;
+    setProgress({
+      visible: true,
+      current: 0,
+      total,
+      message: "Đang làm mới thông tin tài khoản...",
+      email: "",
+    });
+
     try {
-      const data = await refreshAccounts(accessTokens);
+      const { progress_id } = await refreshAccounts(accessTokens);
+
+      // Lẫy thăm tiến trình tới hoàn thành
+      const data = await new Promise<AccountRefreshResponse>((resolve, reject) => {
+        const pollTimer = setInterval(async () => {
+          try {
+            const p = await fetchRefreshProgress(progress_id);
+            if (p.done) {
+              clearInterval(pollTimer);
+              if (p.error) {
+                reject(new Error(p.error));
+                return;
+              }
+              if (!p.result) {
+                reject(new Error("Kết quả làm mới trống rỗng"));
+                return;
+              }
+              // Cập nhật hiển thị tiến trình cuối cùng
+              setProgress((prev) => ({
+                ...prev,
+                current: prev.total,
+                message: "Làm mới hoàn tất",
+              }));
+              // Xóa liên kết thống kê
+              setRefreshSummary(null);
+              resolve(p.result);
+            } else {
+              // Cập nhật tiến trình thực tế
+              setProgress((prev) => ({
+                ...prev,
+                current: p.processed,
+              }));
+              // Cập nhật thống kê card thực tế: cơ sở + kết quả đã làm mới
+              const runningActive = baseActive + ((p.status_counts?.["正常"]) ?? 0);
+              const runningLimited = baseLimited + ((p.status_counts?.["限流"]) ?? 0);
+              const runningAbnormal = baseAbnormal + ((p.status_counts?.["异常"]) ?? 0);
+              const runningDisabled = baseDisabled + ((p.status_counts?.["禁用"]) ?? 0);
+              setRefreshSummary({
+                total: accounts.length,
+                active: runningActive,
+                limited: runningLimited,
+                abnormal: runningAbnormal,
+                disabled: runningDisabled,
+                quota: formatCompact(baseQuotaNum + (p.total_quota ?? 0)),
+              });
+            }
+          } catch (err) {
+            clearInterval(pollTimer);
+            reject(err);
+          }
+        }, 300);
+      });
+
+      // Làm mới hoàn tất, cập nhật dữ liệu
       setAccounts(data.items);
       setSelectedIds((prev) => prev.filter((id) => data.items.some((item) => item.access_token === id)));
-      if (data.errors.length > 0) {
-        const firstError = data.errors[0]?.error;
+
+      const relogined = data.relogined ?? 0;
+
+      // Hiển thị tiến trình tái đăng nhập
+      if (relogined > 0) {
+        setProgress({
+          visible: true,
+          current: 0,
+          total: relogined,
+          message: `Đang cố gắng loại bỏ trạng thái bất thường cho ${relogined} tài khoản`,
+          email: "",
+        });
+        // Mô phỏng tiến trình tái đăng nhập
+        let reCount = 0;
+        await new Promise<void>((resolve) => {
+          const timer = setInterval(() => {
+            reCount += 1;
+            if (reCount >= relogined) {
+              clearInterval(timer);
+              setProgress({
+                visible: true,
+                current: relogined,
+                total: relogined,
+                message: "Hoàn tất loại bỏ trạng thái bất thường",
+                email: "",
+              });
+              setTimeout(() => setProgress({ visible: false, current: 0, total: 0, message: "", email: "" }), 800);
+              resolve();
+            } else {
+              setProgress((prev) => ({ ...prev, current: reCount }));
+            }
+          }, 150);
+          setTimeout(resolve, 2000);
+        });
+      } else {
+        setProgress({
+          visible: true,
+          current: total,
+          total,
+          message: "Làm mới hoàn tất",
+          email: "",
+        });
+        setTimeout(() => setProgress({ visible: false, current: 0, total: 0, message: "", email: "" }), 800);
+      }
+
+      if ((data.errors ?? []).length > 0) {
+        const firstError = data.errors?.[0]?.error;
         toast.error(
           `Làm mới thành công ${data.refreshed}, thất bại ${data.errors.length}${firstError ? `, lỗi đầu tiên: ${firstError}` : ""}`,
         );
       } else {
-        toast.success(`Đã làm mới ${data.refreshed} tài khoản`);
+        toast.success(`Đã làm mới ${data.refreshed} tài khoản${relogined > 0 ? `, đã kích hoạt tái đăng nhập cho ${relogined} tài khoản` : ""}`);
       }
     } catch (error) {
+      setProgress({ visible: false, current: 0, total: 0, message: "", email: "" });
+      setRefreshSummary(null);
       const message = error instanceof Error ? error.message : "Không thể làm mới tài khoản";
       toast.error(message);
     } finally {
@@ -347,9 +553,179 @@ function AccountsPageContent() {
     }
   };
 
+  const pollRefreshProgress = async (
+    progressId: string,
+    onUpdate: (p: RefreshProgressResponse) => void,
+  ): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+      const timer = setInterval(async () => {
+        try {
+          const p = await fetchRefreshProgress(progressId);
+          if (p.done) {
+            clearInterval(timer);
+            if (p.error) {
+              reject(new Error(p.error));
+            } else {
+              onUpdate(p);
+              resolve();
+            }
+          }
+        } catch (err) {
+          clearInterval(timer);
+          reject(err);
+        }
+      }, 500);
+    });
+  };
+
+  const handleReLogin = async (accessTokens: string[]) => {
+    if (accessTokens.length === 0) {
+      toast.error("Vui lòng chọn tài khoản cần khôi phục");
+      return;
+    }
+
+    // Chỉ xử lý tài khoản bất thường, lọc tài khoản không bất thường
+    const abnormalTokens = accessTokens.filter((token) => {
+      const account = accounts.find((a) => a.access_token === token);
+      return account?.status === "异常";
+    });
+
+    if (abnormalTokens.length === 0) {
+      toast.error("Tài khoản đã chọn không có tài khoản bất thường");
+      return;
+    }
+
+    if (abnormalTokens.length < accessTokens.length) {
+      toast.info(`Đã lọc ${accessTokens.length - abnormalTokens.length} tài khoản không bất thường`);
+    }
+
+    setIsRelogining(true);
+
+    // Tính cơ sở của tài khoản chưa chọn (liên kết thống kê card)
+    const selectedTokenSet = new Set(abnormalTokens);
+    const baseAccountsList = accounts.filter((a) => !selectedTokenSet.has(a.access_token));
+    const baseActive = baseAccountsList.filter((a) => a.status === "正常").length;
+    const baseLimited = baseAccountsList.filter((a) => a.status === "限流").length;
+    const baseAbnormal = baseAccountsList.filter((a) => a.status === "异常").length;
+    const baseDisabled = baseAccountsList.filter((a) => a.status === "禁用").length;
+
+    // Hiển thị thanh tiến trình (tiến trình thực)
+    const total = abnormalTokens.length;
+    setProgress({ visible: true, current: 0, total, message: "Đang cố gắng khôi phục tài khoản bất thường...", email: "" });
+
+    try {
+      const { progress_id } = await reLoginAccounts(abnormalTokens);
+
+      // Lẫy thăm tiến trình tới hoàn thành
+      await new Promise<void>((resolve, reject) => {
+        const pollTimer = setInterval(async () => {
+          try {
+            const p = await fetchReLoginProgress(progress_id);
+            if (p.done) {
+              clearInterval(pollTimer);
+              if (p.error) {
+                reject(new Error(p.error));
+                return;
+              }
+              setProgress((prev) => ({ ...prev, current: prev.total, message: "Hoàn tất quy trình khôi phục" }));
+              setRefreshSummary(null);
+              resolve();
+            } else {
+              // Cập nhật tiến trình thực tế
+              const results = p.results ?? [];
+              // Tìm kết quả mới nhất có lỗi
+              const lastErrorResult = [...results].reverse().find((r) => r.error);
+              const emailHint = lastErrorResult
+                ? `Thất bại: ${lastErrorResult.token} ${lastErrorResult.error ?? ""}`
+                : `Đã xử lý ${p.processed}/${p.total}`;
+              setProgress((prev) => ({
+                ...prev,
+                current: p.processed,
+                email: emailHint,
+                message: "Đang cố gắng khôi phục tài khoản bất thường...",
+              }));
+
+              // Cập nhật thống kê card thực tế: cơ sở + kết quả khôi phục đã xử lý
+              let runningActive = baseActive;
+              let runningAbnormal = baseAbnormal;
+              let runningDisabled = baseDisabled;
+              for (const r of results) {
+                if (r.status === "成功") {
+                  runningActive += 1;
+                  runningAbnormal -= 1;
+                } else if (r.status === "禁用") {
+                  runningDisabled += 1;
+                  runningAbnormal -= 1;
+                }
+                // "异常" hoặc "跳过": giữ trạng thái bất thường không đổi
+              }
+              setRefreshSummary({
+                total: accounts.length,
+                active: runningActive,
+                limited: baseLimited,
+                abnormal: runningAbnormal,
+                disabled: runningDisabled,
+                quota: summary.quota,
+              });
+            }
+          } catch (err) {
+            clearInterval(pollTimer);
+            reject(err);
+          }
+        }, 300);
+      });
+
+      // Chờ luồng nền hoàn tất, rồi lấy dữ liệu mới nhất
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
+      try {
+        const freshData = await fetchAccounts();
+        setAccounts(freshData.items);
+        setSelectedIds((prev) => prev.filter((id) => freshData.items.some((item) => item.access_token === id)));
+      } catch { /* Thất bại im lặng */ }
+
+      setProgress({
+        visible: true,
+        current: total,
+        total,
+        message: "Hoàn tất khôi phục",
+        email: "",
+      });
+      setTimeout(() => setProgress({ visible: false, current: 0, total: 0, message: "", email: "" }), 800);
+
+      toast.success(`Quy trình khôi phục đã hoàn tất`);
+    } catch (error) {
+      setProgress({ visible: false, current: 0, total: 0, message: "", email: "" });
+      setRefreshSummary(null);
+      const message = error instanceof Error ? error.message : "Thất bại tái đăng nhập";
+      toast.error(message);
+    } finally {
+      setIsRelogining(false);
+    }
+  };
+
   const openEditDialog = (account: Account) => {
     setEditingAccount(account);
     setEditStatus(account.status);
+    setEditProxy(account.proxy ?? "");
+  };
+
+  const handleTestAccountProxy = async () => {
+    const candidate = editProxy.trim();
+    if (!candidate) {
+      toast.error("Vui lòng nhập địa chỉ máy chủ proxy");
+      return;
+    }
+    setIsTestingProxy(true);
+    try {
+      const data = await testProxy(candidate);
+      data.result.ok
+        ? toast.success(`Máy chủ proxy khả dụng（${data.result.latency_ms} ms，HTTP ${data.result.status}）`)
+        : toast.error(`Máy chủ proxy không khả dụng：${data.result.error ?? "Lỗi không xác định"}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể kiểm tra máy chủ proxy");
+    } finally {
+      setIsTestingProxy(false);
+    }
   };
 
   const handleUpdateAccount = async () => {
@@ -361,6 +737,7 @@ function AccountsPageContent() {
     try {
       const data = await updateAccount(editingAccount.access_token, {
         status: editStatus,
+        proxy: editProxy.trim(),
       });
       setAccounts(data.items);
       setSelectedIds((prev) => prev.filter((id) => data.items.some((item) => item.access_token === id)));
@@ -449,12 +826,35 @@ function AccountsPageContent() {
         </div>
       </div>
 
+      {/* Thanh tiến trình */}
+      {progress.visible && (
+        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white/90 shadow-sm">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-stone-600">
+                {progress.message}
+                {progress.email && <span className="ml-1 font-medium text-stone-700">{progress.email}</span>}
+              </span>
+              <span className="font-medium text-stone-700">
+                {progress.current}/{progress.total}
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-stone-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300 ease-out"
+                style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <Dialog open={Boolean(editingAccount)} onOpenChange={(open) => (!open ? setEditingAccount(null) : null)}>
         <DialogContent showCloseButton={false} className="rounded-2xl p-6">
           <DialogHeader className="gap-2">
             <DialogTitle>Sửa tài khoản</DialogTitle>
             <DialogDescription className="text-sm leading-6">
-              Chỉnh sửa thủ công trạng thái tài khoản.
+              Chỉnh sửa thủ công trạng thái và máy chủ proxy riêng của tài khoản.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -474,6 +874,26 @@ function AccountsPageContent() {
                     ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-stone-700">Máy chủ proxy tài khoản</label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={editProxy}
+                  onChange={(event) => setEditProxy(event.target.value)}
+                  placeholder="Để trống sử dụng máy chủ proxy toàn cục, ví dụ: http://127.0.0.1:7890"
+                  className="h-11 rounded-xl border-stone-200 bg-white"
+                />
+                <Button
+                  variant="outline"
+                  className="h-11 rounded-xl border-stone-200 bg-white px-4 text-stone-700 sm:w-24"
+                  onClick={() => void handleTestAccountProxy()}
+                  disabled={isTestingProxy}
+                >
+                  {isTestingProxy ? <LoaderCircle className="size-4 animate-spin" /> : <Link2 className="size-4" />}
+                  Kiểm tra
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter className="pt-2">
@@ -501,7 +921,7 @@ function AccountsPageContent() {
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
           {metricCards.map((item) => {
             const Icon = item.icon;
-            const value = summary[item.key];
+            const value = (refreshSummary ?? summary)[item.key];
             return (
               <Card key={item.key} className="rounded-2xl border-border/80 bg-surface shadow-sm">
                 <CardContent className="p-4">
@@ -519,6 +939,42 @@ function AccountsPageContent() {
             );
           })}
         </div>
+        <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+          <CardContent className="p-4">
+            <div className="mb-3 text-sm font-medium text-stone-700">
+              Mô hình có sẵn trong hệ thống
+              <span className="ml-1 text-stone-400">({availableModels.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {availableModels.length > 0 ? (
+                availableModels.map((model) => (
+                  <button
+                    key={model.id}
+                    type="button"
+                    className="inline-flex cursor-pointer items-center rounded-full border border-stone-200 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(model.id);
+                      toast.success("Tên mô hình đã sao chép");
+                    }}
+                    title={`Nhấn để sao chép ${model.id}`}
+                  >
+                    <img
+                      src="/openai.svg"
+                      alt=""
+                      aria-hidden="true"
+                      className="mr-1.5 size-3.5 shrink-0"
+                    />
+                    {model.id}
+                  </button>
+                ))
+              ) : isLoadingModels ? (
+                <span className="text-sm text-stone-400">Đang tải danh sách mô hình...</span>
+              ) : (
+                <span className="text-sm text-stone-400">Hiện tại không có mô hình nào khả dụng</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       <section className="space-y-4">
@@ -563,6 +1019,16 @@ function AccountsPageContent() {
                 </Button>
                 <Button
                   variant="ghost"
+                  className="h-8 rounded-lg px-3 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                  onClick={() => void handleReLogin(selectedTokens)}
+                  disabled={selectedTokens.length === 0 || isRelogining}
+                  title="Cố gắng tái đăng nhập mật khẩu để khôi phục tài khoản"
+                >
+                  {isRelogining ? <LoaderCircle className="size-4 animate-spin" /> : <LogIn className="size-4" />}
+                  Cố gắng khôi phục tài khoản bất thường
+                </Button>
+                <Button
+                  variant="ghost"
                   className="h-8 rounded-lg px-3 text-rose-500 hover:bg-rose-50 hover:text-rose-600"
                   onClick={() => void handleDeleteTokens(abnormalTokens)}
                   disabled={abnormalTokens.length === 0 || isDeleting}
@@ -588,7 +1054,7 @@ function AccountsPageContent() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[920px] text-left">
+              <table className="w-full min-w-[1050px] text-left">
                 <thead className="border-b border-border text-[11px] text-content-tertiary uppercase tracking-[0.18em]">
                   <tr>
                     <th className="w-12 px-4 py-3">
@@ -597,12 +1063,15 @@ function AccountsPageContent() {
                         onCheckedChange={(checked) => toggleSelectAll(Boolean(checked))}
                       />
                     </th>
-                    <th className="w-56 px-4 py-3">token</th>
+                    <th className="w-56 px-4 py-3">Token</th>
                     <th className="w-28 px-4 py-3">Loại</th>
+                    <th className="w-24 px-4 py-3">Nguồn</th>
                     <th className="w-24 px-4 py-3">Trạng thái</th>
                     <th className="w-56 px-4 py-3">Thông tin tài khoản</th>
+                    <th className="w-32 px-4 py-3">Thời gian tạo</th>
                     <th className="w-24 px-4 py-3">Hạn ngạch</th>
                     <th className="w-40 px-4 py-3">Thời gian khôi phục</th>
+                    <th className="w-18 px-4 py-3">Đang sinh</th>
                     <th className="w-18 px-4 py-3">Thành công</th>
                     <th className="w-18 px-4 py-3">Thất bại</th>
                     <th className="w-24 px-4 py-3">Hành động</th>
@@ -653,6 +1122,11 @@ function AccountsPageContent() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
+                          <Badge variant="outline" className="rounded-md border-stone-200 text-stone-600">
+                            {displayAccountSource(account)}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
                           <Badge
                             variant={status.badge}
                             className="inline-flex items-center gap-1 rounded-md px-2 py-1"
@@ -663,6 +1137,17 @@ function AccountsPageContent() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="text-xs leading-5 text-content-tertiary">{account.email ?? "—"}</div>
+                        </td>
+                        <td className="px-4 py-3 text-xs leading-5 text-stone-500">
+                          {(() => {
+                            const raw = (account as any).created_at;
+                            if (!raw) return "—";
+                            try {
+                              const d = new Date(raw + "Z");
+                              if (isNaN(d.getTime())) return String(raw).slice(0, 10);
+                              return d.toLocaleDateString("vi-VN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+                            } catch { return String(raw).slice(0, 10); }
+                          })()}
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="info" className="rounded-md">
@@ -677,6 +1162,27 @@ function AccountsPageContent() {
                                 {restore.relative ? <div className="font-medium text-content">{restore.relative}</div> : null}
                                 <div>{restore.absolute}</div>
                               </div>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-3">
+                          {(() => {
+                            const inflight = account.image_inflight ?? 0;
+                            return (
+                              <span
+                                className={
+                                  inflight > 0
+                                    ? "font-semibold text-amber-600"
+                                    : "text-stone-400"
+                                }
+                                title={
+                                  inflight > 0
+                                    ? "Số lượng ảnh hiện đang sinh. Nếu nhóm được lắp đầy nhưng giá trị này vẫn tiếp tục > 0, điều đó cho thấy rò rỉ vị trí truy cập đồng thời, tài khoản này đã bị loại khỏi lịch trình một cách im lặng"
+                                    : "Hiện tại không có tác vụ sinh ảnh nào đang thực hiện"
+                                }
+                              >
+                                {inflight}
+                              </span>
                             );
                           })()}
                         </td>
@@ -696,9 +1202,9 @@ function AccountsPageContent() {
                               type="button"
                               className="rounded-lg p-2 transition hover:bg-surface-secondary hover:text-content"
                               onClick={() => void handleRefreshAccounts([account.access_token])}
-                              disabled={isRefreshing}
+                              disabled={isRefreshing || refreshingTokens.has(account.access_token)}
                             >
-                              <RefreshCw className={cn("size-4", isRefreshing ? "animate-spin" : "")} />
+                              <RefreshCw className={cn("size-4", (isRefreshing || refreshingTokens.has(account.access_token)) ? "animate-spin" : "")} />
                             </button>
                             <button
                               type="button"

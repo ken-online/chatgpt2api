@@ -6,6 +6,7 @@ import { Bell } from "lucide-react";
 import { getRouteMeta } from "./route-meta";
 import { usePageHeaderActions } from "./page-header-context";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { VersionReleaseDialog } from "@/components/version-release-dialog";
 import { getValidatedAuthSession } from "@/lib/auth-session";
 import type { StoredAuthSession } from "@/store/auth";
 
@@ -44,6 +45,7 @@ export function Topbar() {
           {roleLabel}
         </span>
         <ThemeToggle />
+        <VersionReleaseDialog />
         <button
           type="button"
           className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-surface-secondary text-content-secondary transition-colors hover:bg-surface-tertiary hover:text-content"

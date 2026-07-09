@@ -35,3 +35,7 @@ git_cache/
 # Superpowers brainstorm sessions
 .superpowers/
 
+# Thư mục output debug/test
+loginwithpassword_*/
+logwithemailverifycode_*/
+test_batch_output/

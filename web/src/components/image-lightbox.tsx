@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
@@ -35,6 +35,10 @@ type ImageTransform = {
   y: number;
 };
 
+type TouchPoints = {
+  [index: number]: React.Touch;
+};
+
 type TouchGesture =
   | {
       type: "swipe";
@@ -50,6 +54,8 @@ type TouchGesture =
   | {
       type: "pinch";
       startDistance: number;
+      startCenterX: number;
+      startCenterY: number;
       startTransform: ImageTransform;
     };
 
@@ -60,10 +66,19 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getTouchDistance(touches: React.TouchList) {
+function getTouchDistance(touches: TouchPoints) {
   const first = touches[0];
   const second = touches[1];
   return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+}
+
+function getTouchCenter(touches: TouchPoints) {
+  const first = touches[0];
+  const second = touches[1];
+  return {
+    x: (first.clientX + second.clientX) / 2,
+    y: (first.clientY + second.clientY) / 2,
+  };
 }
 
 function normalizeTransform(transform: ImageTransform) {
@@ -91,15 +106,53 @@ export function ImageLightbox({
   const gestureRef = useRef<TouchGesture | null>(null);
   const lastTapRef = useRef(0);
   const wheelAccRef = useRef(0);
+  const pendingTransformRef = useRef<ImageTransform | null>(null);
+  const rafRef = useRef<number | null>(null);
   const [transform, setTransform] = useState<ImageTransform>({ scale: 1, x: 0, y: 0 });
+  const [isGesturing, setIsGesturing] = useState(false);
   const current = images[currentIndex];
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < images.length - 1;
 
-  const resetTransform = useCallback(() => {
-    setTransform({ scale: 1, x: 0, y: 0 });
-    gestureRef.current = null;
+  const cancelScheduledTransform = useCallback(() => {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    pendingTransformRef.current = null;
   }, []);
+
+  const scheduleTransform = useCallback((next: ImageTransform) => {
+    pendingTransformRef.current = next;
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const pending = pendingTransformRef.current;
+      pendingTransformRef.current = null;
+      if (pending) {
+        setTransform(pending);
+      }
+    });
+  }, []);
+
+  const flushScheduledTransform = useCallback(() => {
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    const pending = pendingTransformRef.current;
+    pendingTransformRef.current = null;
+    if (pending) {
+      setTransform(pending);
+    }
+  }, []);
+
+  const resetTransform = useCallback(() => {
+    cancelScheduledTransform();
+    setTransform({ scale: 1, x: 0, y: 0 });
+    setIsGesturing(false);
+    gestureRef.current = null;
+  }, [cancelScheduledTransform]);
 
   const goPrev = useCallback(() => {
     if (hasPrev) onIndexChange(currentIndex - 1);
@@ -112,6 +165,15 @@ export function ImageLightbox({
   useEffect(() => {
     resetTransform();
   }, [current?.id, open, resetTransform]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -132,67 +194,11 @@ export function ImageLightbox({
 
   const handleDownload = useCallback(() => {
     if (!current) return;
-    const src = current.src;
-    const filename = `image-${current.id}.png`;
-
-    const triggerLink = (href: string, revokeAfter?: string) => {
-      const link = document.createElement("a");
-      link.style.display = "none";
-      link.href = href;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        link.remove();
-        if (revokeAfter) URL.revokeObjectURL(revokeAfter);
-      }, 2000);
-    };
-
-    if (src.startsWith("data:")) {
-      try {
-        const [header, base64 = ""] = src.split(",", 2);
-        const mime = header.match(/data:(.*?);/)?.[1] || "image/png";
-        const cleanBase64 = base64.replace(/\s/g, "");
-        const binary = atob(cleanBase64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mime }));
-        triggerLink(blobUrl, blobUrl);
-      } catch {
-        window.open(src, "_blank", "noopener,noreferrer");
-      }
-    } else if (src.startsWith("blob:")) {
-      triggerLink(src);
-    } else {
-      // Server URL → dùng /api/download-image để tránh cross-origin fetch
-      const path = src.startsWith("http") ? new URL(src).pathname : src;
-      triggerLink(`/api/download-image?path=${encodeURIComponent(path)}&filename=${encodeURIComponent(filename)}`);
-    }
+    const link = document.createElement("a");
+    link.href = current.src;
+    link.download = `image-${current.id}.png`;
+    link.click();
   }, [current]);
-
-  const handleWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
-      if (transform.scale > minScale) return;
-      wheelAccRef.current += e.deltaY;
-      if (Math.abs(wheelAccRef.current) < 80) return;
-      const goDown = wheelAccRef.current > 0;
-      wheelAccRef.current = 0;
-      if (goDown) {
-        if (revisionNav && revisionNav.total > 1) {
-          if (revisionNav.slot < revisionNav.total - 1) revisionNav.onNext();
-        } else {
-          goNext();
-        }
-      } else {
-        if (revisionNav && revisionNav.total > 1) {
-          if (revisionNav.slot > 0) revisionNav.onPrev();
-        } else {
-          goPrev();
-        }
-      }
-    },
-    [transform.scale, revisionNav, goNext, goPrev],
-  );
 
   const toggleZoom = useCallback(() => {
     setTransform((currentTransform) =>
@@ -200,13 +206,37 @@ export function ImageLightbox({
     );
   }, []);
 
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault();
+      wheelAccRef.current += e.deltaY;
+      const step = Math.abs(wheelAccRef.current) >= 100;
+      if (!step) return;
+      wheelAccRef.current = 0;
+      const newScale = clamp(transform.scale * (e.deltaY > 0 ? 0.8 : 1.2), minScale, maxScale);
+      if (newScale === transform.scale) return;
+      scheduleTransform({ ...transform, scale: newScale });
+    },
+    [transform, scheduleTransform],
+  );
+
   const handleTouchStart = useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
       if (event.touches.length === 2) {
         event.preventDefault();
+        const startDistance = getTouchDistance(event.touches);
+        if (startDistance < 1) {
+          gestureRef.current = null;
+          return;
+        }
+        const center = getTouchCenter(event.touches);
+        cancelScheduledTransform();
+        setIsGesturing(true);
         gestureRef.current = {
           type: "pinch",
-          startDistance: getTouchDistance(event.touches),
+          startDistance,
+          startCenterX: center.x,
+          startCenterY: center.y,
           startTransform: transform,
         };
         return;
@@ -218,58 +248,81 @@ export function ImageLightbox({
       }
 
       const touch = event.touches[0];
-      gestureRef.current =
-        transform.scale > minScale
-          ? {
-              type: "pan",
-              startX: touch.clientX,
-              startY: touch.clientY,
-              startTransform: transform,
-            }
-          : {
-              type: "swipe",
-              startX: touch.clientX,
-              startY: touch.clientY,
-            };
+      if (transform.scale > minScale) {
+        cancelScheduledTransform();
+        setIsGesturing(true);
+        gestureRef.current = {
+          type: "pan",
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startTransform: transform,
+        };
+      } else {
+        gestureRef.current = {
+          type: "swipe",
+          startX: touch.clientX,
+          startY: touch.clientY,
+        };
+      }
     },
-    [transform],
+    [transform, cancelScheduledTransform],
   );
 
-  const handleTouchMove = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
-    const gesture = gestureRef.current;
-    if (!gesture) return;
+  const handleTouchMove = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const gesture = gestureRef.current;
+      if (!gesture) return;
 
-    if (gesture.type === "pinch" && event.touches.length === 2) {
-      event.preventDefault();
-      const nextScale = clamp(
-        (getTouchDistance(event.touches) / gesture.startDistance) * gesture.startTransform.scale,
-        minScale,
-        maxScale,
-      );
-      setTransform(normalizeTransform({ ...gesture.startTransform, scale: nextScale }));
-      return;
-    }
+      if (gesture.type === "pinch" && event.touches.length === 2) {
+        event.preventDefault();
+        const targetScale = clamp(
+          (getTouchDistance(event.touches) / gesture.startDistance) * gesture.startTransform.scale,
+          minScale,
+          maxScale,
+        );
+        const effectiveRatio = targetScale / gesture.startTransform.scale;
+        const center = getTouchCenter(event.touches);
+        const viewportCenterX = window.innerWidth / 2;
+        const viewportCenterY = window.innerHeight / 2;
+        const nextX =
+          center.x -
+          viewportCenterX -
+          (gesture.startCenterX - viewportCenterX - gesture.startTransform.x) * effectiveRatio;
+        const nextY =
+          center.y -
+          viewportCenterY -
+          (gesture.startCenterY - viewportCenterY - gesture.startTransform.y) * effectiveRatio;
+        scheduleTransform(
+          normalizeTransform({ scale: targetScale, x: nextX, y: nextY }),
+        );
+        return;
+      }
 
-    if (gesture.type === "pan" && event.touches.length === 1) {
-      event.preventDefault();
-      const touch = event.touches[0];
-      setTransform(
-        normalizeTransform({
-          scale: gesture.startTransform.scale,
-          x: gesture.startTransform.x + touch.clientX - gesture.startX,
-          y: gesture.startTransform.y + touch.clientY - gesture.startY,
-        }),
-      );
-      return;
-    }
+      if (gesture.type === "pan" && event.touches.length === 1) {
+        event.preventDefault();
+        const touch = event.touches[0];
+        scheduleTransform(
+          normalizeTransform({
+            scale: gesture.startTransform.scale,
+            x: gesture.startTransform.x + touch.clientX - gesture.startX,
+            y: gesture.startTransform.y + touch.clientY - gesture.startY,
+          }),
+        );
+        return;
+      }
 
-    if (event.touches.length !== 1) {
-      gestureRef.current = null;
-    }
-  }, []);
+      if (event.touches.length !== 1) {
+        gestureRef.current = null;
+      }
+    },
+    [scheduleTransform],
+  );
 
   const handleTouchEnd = useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
+      flushScheduledTransform();
+      setIsGesturing(false);
+
       const gesture = gestureRef.current;
       gestureRef.current = null;
       if (!gesture) return;
@@ -301,8 +354,14 @@ export function ImageLightbox({
         goNext();
       }
     },
-    [goPrev, goNext, toggleZoom],
+    [goPrev, goNext, toggleZoom, flushScheduledTransform],
   );
+
+  const handleTouchCancel = useCallback(() => {
+    cancelScheduledTransform();
+    setIsGesturing(false);
+    gestureRef.current = null;
+  }, [cancelScheduledTransform]);
 
   if (!current) return null;
 
@@ -331,11 +390,11 @@ export function ImageLightbox({
             )}
             <button
               type="button"
-              onClick={() => void handleDownload()}
-              className="inline-flex size-10 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70"
+              onClick={handleDownload}
+              className="inline-flex size-9 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70"
               aria-label="Tải xuống ảnh"
             >
-              <Download className="size-5" />
+              <Download className="size-4" />
             </button>
             <DialogPrimitive.Close className="inline-flex size-9 items-center justify-center rounded-full bg-black/50 text-white/90 transition hover:bg-black/70">
               <X className="size-4" />
@@ -360,6 +419,7 @@ export function ImageLightbox({
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
             onWheel={handleWheel}
           >
             <img

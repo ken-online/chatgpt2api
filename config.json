@@ -12,6 +12,28 @@
     "warning"
   ],
   "proxy": "",
+  "proxy_runtime": {
+    "enabled": false,
+    "egress_mode": "single_proxy",
+    "proxy_url": "http://privoxy:8118",
+    "resource_proxy_url": "",
+    "skip_ssl_verify": true,
+    "reset_session_status_codes": [
+      403
+    ],
+    "clearance": {
+      "enabled": true,
+      "mode": "flaresolverr",
+      "cf_cookies": "",
+      "cf_clearance": "",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+      "browser": "chrome",
+      "flaresolverr_url": "http://flaresolverr:8191",
+      "timeout_sec": 60,
+      "refresh_interval": 3600,
+      "warm_up_on_start": true
+    }
+  },
   "base_url": "",
   "sensitive_words": [],
   "global_system_prompt": "",
@@ -25,9 +47,9 @@
   "backup": {
     "enabled": false,
     "provider": "cloudflare_r2",
-    "account_id": "",
+    "account_id": "admin",
     "access_key_id": "",
-    "secret_access_key": "",
+    "secret_access_key": "admin",
     "bucket": "",
     "prefix": "backups",
     "interval_minutes": 1440,
@@ -47,6 +69,41 @@
     }
   },
   "image_account_concurrency": 3,
+  "image_parallel_generation": true,
+  "image_poll_interval_secs": 10,
+  "image_poll_initial_wait_secs": 10,
+  "image_storage": {
+    "enabled": false,
+    "mode": "local",
+    "webdav_url": "",
+    "webdav_username": "",
+    "webdav_password": "",
+    "webdav_root_path": "chatgpt2api/images",
+    "public_base_url": ""
+  },
+  "image_min_free_mb": 500,
+  "chat_completion_cache": {
+    "enabled": true,
+    "ttl_seconds": 60,
+    "max_entries": 256,
+    "dedupe_inflight": true,
+    "stream_cache": true,
+    "normalize_messages": true,
+    "drop_adjacent_duplicates": true,
+    "drop_assistant_history": false
+  },
+  "image_settle_enabled": false,
+  "image_check_before_hit_enabled": false,
+  "image_settle_secs": 2,
+  "auto_relogin_after_refresh": false,
+  "image_timeout_retry_secs": 30,
+  "third_party_apps": {
+    "infinite_canvas": {
+      "enabled": true,
+      "url": "https://canvas.best"
+    }
+  },
+  "image_remove_conversation_after_result": true,
   "pixelcut": {
     "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ijg2OGU0YWNlMGI2NTE2ZDM2YjlmNTZkZThjZTQ5Nzg4ZmNjZGFjNDMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiVGluYSBDdXRlIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0liTHFQUDY0Si0xb3BCSWFjVGdsc2w2WEFRZHZlVGpvMzZEUDZ3RVRzYjZHbFpuc1M5PXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL3BpeGVscy1nb2xkIiwiYXVkIjoicGl4ZWxzLWdvbGQiLCJhdXRoX3RpbWUiOjE3NjUxMjM4NTUsInVzZXJfaWQiOiJkTEpJMlhNTHJkY1FMNGEzN0RVRDd0aWhaRm8yIiwic3ViIjoiZExKSTJYTUxyZGNRTDRhMzdEVUQ3dGloWkZvMiIsImlhdCI6MTc3ODM1NzU1MSwiZXhwIjoxNzc4MzYxMTUxLCJlbWFpbCI6InRpbmEuc29jdXRlNjlAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZ29vZ2xlLmNvbSI6WyIxMDU3OTIyMDYxMDE1NTk1NjkwMDYiXSwiZW1haWwiOlsidGluYS5zb2N1dGU2OUBnbWFpbC5jb20iXX0sInNpZ25faW5fcHJvdmlkZXIiOiJnb29nbGUuY29tIn19.f9hnjZyOBmZ2VtW74zZ0NdQvc-bdaizpRFd7OaBSBt0nTnjRZAKkPN5I7gdDVIHDpPD9Wv8xdaffYQyIaqGhUaFmVCF6-8Gq7s7dgIB1MLJnkm_p1blA-iTZmB_SlcZkFPWnUmWx4FqGivUaEEGg6TPl3iTzNOW7gfj-uBSVevfMWCFMTklWdQliB8d_AzH7tS9kBa4ZEaa8i7-ayzzIu14A7r2MxJsbFEmgx1KPGartXFyG0cUbbkeKpcDoBWIEx0SjJv7U--X4x_Jt2UB0fBNU1YyqdF6aUTaAjtR8ksc32RbxDQoFPp5J5G3Zwr6_w3xRb7Sq3qaaf5zp7avxWA",
     "org_id": "171ad7c6-392f-48d2-a014-27483fe677bd",

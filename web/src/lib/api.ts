@@ -1,13 +1,25 @@
-import { httpRequest } from "@/lib/request";
+import { httpRequest, request } from "@/lib/request";
 
 export type AccountType = string;
 export type AccountStatus = "正常" | "限流" | "异常" | "禁用";
-export type ImageModel = "gpt-image-2" | "codex-gpt-image-2";
+export type ImageModel = string;
 export type AuthRole = "admin" | "user";
+export type ImageStorageMode = "local" | "webdav" | "both";
+
+export type ImageStorageSettings = {
+  enabled: boolean;
+  mode: ImageStorageMode;
+  webdav_url: string;
+  webdav_username: string;
+  webdav_password: string;
+  webdav_root_path: string;
+  public_base_url: string;
+};
 
 export type Account = {
   access_token: string;
   type: AccountType;
+  source_type?: string | null;
   status: AccountStatus;
   quota: number;
   image_quota_unknown?: boolean;
@@ -22,11 +34,38 @@ export type Account = {
   restore_at?: string | null;
   success: number;
   fail: number;
+  /** Số lượng hình ảnh hiện tại đang xử lý (số lượng hình ảnh đang được tạo, chưa kết thúc). Khi hồ bơi nhàn rỗi mà vẫn > 0 có nghĩa là rò rỉ vị trí xử lý đồng thời. */
+  image_inflight?: number;
   last_used_at?: string | null;
+  proxy?: string | null;
+};
+
+export type AccountImportPayload = {
+  access_token: string;
+  accessToken?: string;
+  type?: string;
+  export_type?: string;
+  source_type?: string;
+  [key: string]: unknown;
+};
+
+export type Model = {
+  id: string;
+  object: string;
+  created: number;
+  owned_by: string;
+  permission: unknown[];
+  root: string;
+  parent: string | null;
 };
 
 type AccountListResponse = {
   items: Account[];
+};
+
+type ModelListResponse = {
+  object: string;
+  data: Model[];
 };
 
 type AccountMutationResponse = {
@@ -35,18 +74,82 @@ type AccountMutationResponse = {
   skipped?: number;
   removed?: number;
   refreshed?: number;
+  relogined?: number;
   errors?: Array<{ access_token: string; error: string }>;
 };
 
-type AccountRefreshResponse = {
+export type AccountRefreshResponse = {
   items: Account[];
   refreshed: number;
+  relogined?: number;
   errors: Array<{ access_token: string; error: string }>;
+};
+
+export type RefreshProgressResponse = {
+  total: number;
+  processed: number;
+  done: boolean;
+  error: string | null;
+  status_counts?: Record<string, number>;
+  total_quota?: number;
+  result?: AccountRefreshResponse | null;
+  results?: Array<{ token: string; status: string; error?: string | null }>;
 };
 
 type AccountUpdateResponse = {
   item: Account;
   items: Account[];
+};
+
+export type ProxyRuntimeEgressMode = "direct" | "single_proxy";
+export type ProxyRuntimeClearanceMode = "none" | "manual" | "flaresolverr";
+
+export type ProxyRuntimeClearanceSettings = {
+  enabled: boolean;
+  mode: ProxyRuntimeClearanceMode;
+  cf_cookies: string;
+  cf_clearance: string;
+  user_agent: string;
+  browser: string;
+  flaresolverr_url: string;
+  timeout_sec: number | string;
+  refresh_interval: number | string;
+  warm_up_on_start: boolean;
+  has_cf_cookies?: boolean;
+  has_cf_clearance?: boolean;
+};
+
+export type ProxyRuntimeSettings = {
+  enabled: boolean;
+  egress_mode: ProxyRuntimeEgressMode;
+  proxy_url: string;
+  resource_proxy_url: string;
+  skip_ssl_verify: boolean;
+  reset_session_status_codes: number[];
+  clearance: ProxyRuntimeClearanceSettings;
+};
+
+export type ProxyRuntimeStatus = {
+  enabled: boolean;
+  egress_mode: ProxyRuntimeEgressMode | string;
+  proxy_source: string;
+  has_proxy: boolean;
+  clearance_enabled: boolean;
+  clearance_mode: ProxyRuntimeClearanceMode | string;
+  has_clearance_bundle: boolean;
+  cached_clearance_hosts: string[];
+};
+
+export type ProxyRuntimeResponse = {
+  runtime: ProxyRuntimeSettings;
+  status: ProxyRuntimeStatus;
+};
+
+export type ThirdPartyAppsSettings = {
+  infinite_canvas: {
+    enabled: boolean;
+    url: string;
+  };
 };
 
 export type SettingsConfig = {
@@ -65,9 +168,19 @@ export type SettingsConfig = {
   image_retention_days?: number | string;
   image_poll_timeout_secs?: number | string;
   image_account_concurrency?: number | string;
+  image_parallel_generation?: boolean;
+  image_settle_enabled?: boolean;
+  image_check_before_hit_enabled?: boolean;
+  image_remove_conversation_after_result?: boolean;
+  image_settle_secs?: number | string;
+  image_timeout_retry_secs?: number | string;
   auto_remove_invalid_accounts?: boolean;
   auto_remove_rate_limited_accounts?: boolean;
+  auto_relogin_after_refresh?: boolean;
   log_levels?: string[];
+  image_storage?: ImageStorageSettings;
+  proxy_runtime?: ProxyRuntimeSettings;
+  third_party_apps?: ThirdPartyAppsSettings;
   backup?: BackupSettings;
   backup_state?: BackupState;
   [key: string]: unknown;
@@ -83,6 +196,7 @@ export type BackupInclude = {
   accounts_snapshot: boolean;
   auth_keys_snapshot: boolean;
   images: boolean;
+  image_index?: boolean;
 };
 
 export type BackupSettings = {
@@ -172,10 +286,15 @@ export type ImageTask = {
   mode: "generate" | "edit";
   model?: ImageModel;
   size?: string;
+  quality?: string;
   created_at: string;
   updated_at: string;
+  conversation_id?: string;
   data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }>;
   error?: string;
+  progress?: string;
+  elapsed_secs?: number;
+  duration_ms?: number;
 };
 
 type ImageTaskListResponse = {
@@ -200,45 +319,6 @@ export type UserKey = {
   last_used_at: string | null;
 };
 
-export type RegisterConfig = {
-  enabled: boolean;
-  mail: {
-    request_timeout: number;
-    wait_timeout: number;
-    wait_interval: number;
-    user_agent?: string;
-    providers: Array<Record<string, unknown>>;
-  };
-  proxy: string;
-  total: number;
-  threads: number;
-  mode: "total" | "quota" | "available";
-  target_quota: number;
-  target_available: number;
-  check_interval: number;
-  stats: {
-    job_id?: string;
-    success: number;
-    fail: number;
-    done: number;
-    running: number;
-    threads: number;
-    elapsed_seconds?: number;
-    avg_seconds?: number;
-    success_rate?: number;
-    current_quota?: number;
-    current_available?: number;
-    started_at?: string;
-    updated_at?: string;
-    finished_at?: string;
-  };
-  logs?: Array<{
-    time: string;
-    text: string;
-    level: string;
-  }>;
-};
-
 export async function login(authKey: string) {
   const normalizedAuthKey = String(authKey || "").trim();
   return httpRequest<LoginResponse>("/auth/login", {
@@ -255,10 +335,35 @@ export async function fetchAccounts() {
   return httpRequest<AccountListResponse>("/api/accounts");
 }
 
-export async function createAccounts(tokens: string[]) {
+export async function fetchModels() {
+  return httpRequest<ModelListResponse>("/v1/models");
+}
+
+export async function createAccounts(tokens: string[], accounts: AccountImportPayload[] = []) {
   return httpRequest<AccountMutationResponse>("/api/accounts", {
     method: "POST",
-    body: { tokens },
+    body: { tokens, accounts },
+  });
+}
+
+export type OAuthLoginStartResponse = {
+  session_id: string;
+  authorize_url: string;
+  expires_in: string;
+  redirect_uri_prefix: string;
+};
+
+export async function startOAuthLogin(emailHint?: string) {
+  return httpRequest<OAuthLoginStartResponse>("/api/accounts/oauth/start", {
+    method: "POST",
+    body: { email_hint: emailHint ?? "" },
+  });
+}
+
+export async function finishOAuthLogin(sessionId: string, callback: string) {
+  return httpRequest<AccountMutationResponse>("/api/accounts/oauth/finish", {
+    method: "POST",
+    body: { session_id: sessionId, callback },
   });
 }
 
@@ -270,10 +375,25 @@ export async function deleteAccounts(tokens: string[]) {
 }
 
 export async function refreshAccounts(accessTokens: string[]) {
-  return httpRequest<AccountRefreshResponse>("/api/accounts/refresh", {
+  return httpRequest<{ progress_id: string }>("/api/accounts/refresh", {
     method: "POST",
     body: { access_tokens: accessTokens },
   });
+}
+
+export async function fetchRefreshProgress(progressId: string) {
+  return httpRequest<RefreshProgressResponse>(`/api/accounts/refresh/progress/${progressId}`);
+}
+
+export async function reLoginAccounts(accessTokens: string[]) {
+  return httpRequest<{ progress_id: string }>("/api/accounts/re-login", {
+    method: "POST",
+    body: { access_tokens: accessTokens },
+  });
+}
+
+export async function fetchReLoginProgress(progressId: string) {
+  return httpRequest<RefreshProgressResponse>(`/api/accounts/re-login/progress/${progressId}`);
 }
 
 export async function updateAccount(
@@ -282,6 +402,7 @@ export async function updateAccount(
     type?: AccountType;
     status?: AccountStatus;
     quota?: number;
+    proxy?: string;
   },
 ) {
   return httpRequest<AccountUpdateResponse>("/api/accounts/update", {
@@ -293,7 +414,7 @@ export async function updateAccount(
   });
 }
 
-export async function generateImage(prompt: string, model?: ImageModel, size?: string) {
+export async function generateImage(prompt: string, model?: ImageModel, size?: string, quality = "auto") {
   return httpRequest<ImageResponse>(
     "/v1/images/generations",
     {
@@ -302,6 +423,7 @@ export async function generateImage(prompt: string, model?: ImageModel, size?: s
         prompt,
         ...(model ? { model } : {}),
         ...(size ? { size } : {}),
+        quality,
         n: 1,
         response_format: "b64_json",
       },
@@ -309,7 +431,7 @@ export async function generateImage(prompt: string, model?: ImageModel, size?: s
   );
 }
 
-export async function editImage(files: File | File[], prompt: string, model?: ImageModel, size?: string) {
+export async function editImage(files: File | File[], prompt: string, model?: ImageModel, size?: string, quality = "auto") {
   const formData = new FormData();
   const uploadFiles = Array.isArray(files) ? files : [files];
 
@@ -323,6 +445,7 @@ export async function editImage(files: File | File[], prompt: string, model?: Im
   if (size) {
     formData.append("size", size);
   }
+  formData.append("quality", quality);
   formData.append("n", "1");
 
   return httpRequest<ImageResponse>(
@@ -334,7 +457,7 @@ export async function editImage(files: File | File[], prompt: string, model?: Im
   );
 }
 
-export async function createImageGenerationTask(clientTaskId: string, prompt: string, model?: ImageModel, size?: string) {
+export async function createImageGenerationTask(clientTaskId: string, prompt: string, model?: ImageModel, size?: string, quality = "auto") {
   return httpRequest<ImageTask>("/api/image-tasks/generations", {
     method: "POST",
     body: {
@@ -342,6 +465,7 @@ export async function createImageGenerationTask(clientTaskId: string, prompt: st
       prompt,
       ...(model ? { model } : {}),
       ...(size ? { size } : {}),
+      quality,
     },
   });
 }
@@ -352,6 +476,7 @@ export async function createImageEditTask(
   prompt: string,
   model?: ImageModel,
   size?: string,
+  quality = "auto",
 ) {
   const formData = new FormData();
   const uploadFiles = Array.isArray(files) ? files : [files];
@@ -367,6 +492,7 @@ export async function createImageEditTask(
   if (size) {
     formData.append("size", size);
   }
+  formData.append("quality", quality);
 
   return httpRequest<ImageTask>("/api/image-tasks/edits", {
     method: "POST",
@@ -379,7 +505,15 @@ export async function fetchImageTasks(ids: string[]) {
   if (ids.length > 0) {
     params.set("ids", ids.join(","));
   }
-  return httpRequest<ImageTaskListResponse>(`/api/image-tasks${params.toString() ? `?${params.toString()}` : ""}`);
+  params.set("_t", String(Date.now()));
+  return httpRequest<ImageTaskListResponse>(`/api/image-tasks?${params.toString()}`);
+}
+
+export async function resumeImagePoll(taskId: string, extraTimeoutSecs = 30) {
+  return httpRequest<ImageTask>(`/api/image-tasks/${encodeURIComponent(taskId)}/resume-poll`, {
+    method: "POST",
+    body: { extra_timeout_secs: extraTimeoutSecs },
+  });
 }
 
 export async function fetchSettingsConfig() {
@@ -393,8 +527,26 @@ export async function updateSettingsConfig(settings: SettingsConfig) {
   });
 }
 
+export async function fetchThirdPartyApps() {
+  return httpRequest<{ third_party_apps: ThirdPartyAppsSettings }>("/api/third-party-apps");
+}
+
 export async function testBackupConnection() {
   return httpRequest<{ result: { ok: boolean; status: number } }>("/api/backup/test", {
+    method: "POST",
+    body: {},
+  });
+}
+
+export async function testImageStorageConnection() {
+  return httpRequest<{ result: { ok: boolean; status: number; error?: string } }>("/api/image-storage/test", {
+    method: "POST",
+    body: {},
+  });
+}
+
+export async function syncImageStorage() {
+  return httpRequest<{ result: { uploaded: number; skipped: number; failed: number } }>("/api/image-storage/sync", {
     method: "POST",
     body: {},
   });
@@ -443,6 +595,32 @@ export async function deleteManagedImages(body: { paths?: string[]; start_date?:
   return httpRequest<{ removed: number }>("/api/images/delete", { method: "POST", body });
 }
 
+export async function downloadImages(paths: string[]) {
+  const response = await request.post("/api/images/download", { paths }, { responseType: "blob" });
+  const blob = response.data as Blob;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "images.zip";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export async function downloadSingleImage(path: string) {
+  const response = await request.get(`/api/images/download/${path}`, { responseType: "blob" });
+  const blob = response.data as Blob;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = path.split("/").pop() || "image.png";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchImageTags() {
   return httpRequest<{ tags: string[] }>("/api/images/tags");
 }
@@ -458,6 +636,26 @@ export async function deleteImageTag(tag: string) {
   return httpRequest<{ ok: boolean; removed_from: number }>(`/api/images/tags/${encodeURIComponent(tag)}`, {
     method: "DELETE",
   });
+}
+
+export type ImageStorageStats = {
+  disk_total_mb: number; disk_used_mb: number; disk_free_mb: number;
+  image_count: number; image_size_mb: number; image_size_bytes: number;
+};
+
+export async function fetchImageStorage() {
+  return httpRequest<ImageStorageStats>("/api/images/storage");
+}
+
+export async function compressAllImages() {
+  return httpRequest<{ compressed: number; saved_bytes: number; saved_mb: number }>("/api/images/storage/compress", { method: "POST" });
+}
+
+export async function deleteToTarget(targetFreeMb: number) {
+  return httpRequest<{ removed: number; freed_mb: number; done: boolean }>(
+    `/api/images/storage/cleanup-to-target?target_free_mb=${targetFreeMb}&dry_run=false`,
+    { method: "POST" },
+  );
 }
 
 export async function fetchSystemLogs(filters: { type?: string; start_date?: string; end_date?: string }) {
@@ -497,29 +695,6 @@ export async function deleteUserKey(keyId: string) {
   return httpRequest<{ items: UserKey[] }>(`/api/auth/users/${keyId}`, {
     method: "DELETE",
   });
-}
-
-export async function fetchRegisterConfig() {
-  return httpRequest<{ register: RegisterConfig }>("/api/register");
-}
-
-export async function updateRegisterConfig(updates: Partial<RegisterConfig>) {
-  return httpRequest<{ register: RegisterConfig }>("/api/register", {
-    method: "POST",
-    body: updates,
-  });
-}
-
-export async function startRegister() {
-  return httpRequest<{ register: RegisterConfig }>("/api/register/start", { method: "POST" });
-}
-
-export async function stopRegister() {
-  return httpRequest<{ register: RegisterConfig }>("/api/register/stop", { method: "POST" });
-}
-
-export async function resetRegister() {
-  return httpRequest<{ register: RegisterConfig }>("/api/register/reset", { method: "POST" });
 }
 
 // ── CPA (CLIProxyAPI) ──────────────────────────────────────────────
@@ -700,6 +875,18 @@ export type ProxyTestResult = {
   status: number;
   latency_ms: number;
   error: string | null;
+  proxy_source?: string;
+  has_proxy?: boolean;
+};
+
+export type ClearanceTestResult = {
+  ok: boolean;
+  status: string;
+  latency_ms: number;
+  has_cookies: boolean;
+  user_agent: string;
+  error: string | null;
+  runtime: ProxyRuntimeStatus;
 };
 
 export async function fetchProxy() {
@@ -718,6 +905,88 @@ export async function testProxy(url?: string) {
     method: "POST",
     body: { url: url ?? "" },
   });
+}
+
+export async function fetchProxyRuntime() {
+  return httpRequest<ProxyRuntimeResponse>("/api/proxy/runtime");
+}
+
+export async function updateProxyRuntime(runtime: ProxyRuntimeSettings) {
+  return httpRequest<ProxyRuntimeResponse>("/api/proxy/runtime", {
+    method: "POST",
+    body: runtime,
+  });
+}
+
+export async function testProxyClearance(targetUrl?: string) {
+  return httpRequest<{ result: ClearanceTestResult }>("/api/proxy/clearance/test", {
+    method: "POST",
+    body: { target_url: targetUrl ?? "https://chatgpt.com" },
+  });
+}
+
+// ── Đăng ký tài khoản (giữ từ bản custom, upstream đã gỡ) ──────────
+
+export type RegisterConfig = {
+  enabled: boolean;
+  mail: {
+    request_timeout: number;
+    wait_timeout: number;
+    wait_interval: number;
+    user_agent?: string;
+    providers: Array<Record<string, unknown>>;
+  };
+  proxy: string;
+  total: number;
+  threads: number;
+  mode: "total" | "quota" | "available";
+  target_quota: number;
+  target_available: number;
+  check_interval: number;
+  stats: {
+    job_id?: string;
+    success: number;
+    fail: number;
+    done: number;
+    running: number;
+    threads: number;
+    elapsed_seconds?: number;
+    avg_seconds?: number;
+    success_rate?: number;
+    current_quota?: number;
+    current_available?: number;
+    started_at?: string;
+    updated_at?: string;
+    finished_at?: string;
+  };
+  logs?: Array<{
+    time: string;
+    text: string;
+    level: string;
+  }>;
+};
+
+export async function fetchRegisterConfig() {
+  return httpRequest<{ register: RegisterConfig }>("/api/register");
+}
+
+export async function updateRegisterConfig(updates: Partial<RegisterConfig>) {
+  return httpRequest<{ register: RegisterConfig }>("/api/register", {
+    method: "POST",
+    body: updates,
+  });
+}
+
+export async function startRegister() {
+  return httpRequest<{ register: RegisterConfig }>("/api/register/start", { method: "POST" });
+}
+
+export async function stopRegister() {
+  return httpRequest<{ register: RegisterConfig }>("/api/register/stop", { method: "POST" });
+}
+
+export async function resetRegister() {
+  return httpRequest<{ register: RegisterConfig }>("/api/register/reset", { method: "POST" });
 }
 
 export async function deleteImages(paths: string[]) {

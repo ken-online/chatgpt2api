@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { History, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, History, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ImageComposer } from "@/app/image/components/image-composer";
@@ -25,16 +25,22 @@ import {
   createImageGenerationTask,
   deleteImages,
   fetchAccounts,
+  fetchModels,
   fetchImageTasks,
+  resumeImagePoll,
   type Account,
+  type ImageModel,
+  type Model,
   type ImageTask,
 } from "@/lib/api";
 import { useAuthGuard } from "@/lib/use-auth-guard";
+import { useSettingsStore } from "@/app/settings/store";
 import {
   clearImageConversations,
   deleteImageConversation,
   getImageConversationStats,
   listImageConversations,
+  renameImageConversation,
   saveImageConversation,
   saveImageConversations,
   type ImageConversation,
@@ -46,13 +52,51 @@ import {
 } from "@/store/image-conversations";
 
 const ACTIVE_CONVERSATION_STORAGE_KEY = "chatgpt2api:image_active_conversation_id";
-const IMAGE_SIZE_STORAGE_KEY = "chatgpt2api:image_last_size";
+const IMAGE_RATIO_STORAGE_KEY = "chatgpt2api:image_last_ratio";
+const IMAGE_TIER_STORAGE_KEY = "chatgpt2api:image_last_tier";
+const IMAGE_QUALITY_STORAGE_KEY = "chatgpt2api:image_last_quality";
+const IMAGE_MODEL_STORAGE_KEY = "chatgpt2api:image_last_model";
 const IMAGE_COUNT_STORAGE_KEY = "chatgpt2api:image_last_count";
+const SCROLL_POSITIONS_STORAGE_KEY = "chatgpt2api:image_scroll_positions";
+const SCROLL_TO_LATEST_THRESHOLD = 160;
+
+function loadScrollPositions(): Map<string, number> {
+  if (typeof window === "undefined") return new Map();
+  try {
+    const raw = window.sessionStorage.getItem(SCROLL_POSITIONS_STORAGE_KEY);
+    if (!raw) return new Map();
+    const parsed = JSON.parse(raw) as Record<string, number>;
+    return new Map(Object.entries(parsed));
+  } catch {
+    return new Map();
+  }
+}
+
+function saveScrollPositions(positions: Map<string, number>) {
+  if (typeof window === "undefined") return;
+  try {
+    const obj: Record<string, number> = {};
+    positions.forEach((value, key) => { obj[key] = value; });
+    window.sessionStorage.setItem(SCROLL_POSITIONS_STORAGE_KEY, JSON.stringify(obj));
+  } catch {
+    // sessionStorage may be full or unavailable
+  }
+}
 
 function clampImageCount(value: string) {
   return String(Math.min(100, Math.max(1, Math.floor(Number(value) || 1))));
 }
+function parseImageSize(size: string) {
+  const match = size.match(/^(\d+)x(\d+)$/);
+  return match ? { width: match[1], height: match[2] } : { width: "1024", height: "1024" };
+}
+
 const activeConversationQueueIds = new Set<string>();
+let pollAbortController: AbortController | null = null;
+
+function getResultsDistanceFromBottom(element: HTMLElement) {
+  return element.scrollHeight - element.scrollTop - element.clientHeight;
+}
 
 function buildConversationTitle(prompt: string) {
   return prompt.trim();
@@ -77,9 +121,6 @@ function formatAvailableQuota(accounts: Account[]) {
 }
 
 function createId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
@@ -101,6 +142,20 @@ function dataUrlToFile(dataUrl: string, fileName: string, mimeType?: string) {
     bytes[index] = binary.charCodeAt(index);
   }
   return new File([bytes], fileName, { type: mimeType || matchedMimeType || "image/png" });
+}
+
+function filterImageModels(items: Model[]): ImageModel[] {
+  return items
+    .map((item) => String(item.id || "").trim())
+    .filter((id, index, list) => id.toLowerCase().includes("image") && list.indexOf(id) === index);
+}
+
+function normalizeStoredImageModel(value: string | null, availableModels: ImageModel[]): ImageModel {
+  const normalized = String(value || "").trim();
+  if (normalized && availableModels.includes(normalized)) {
+    return normalized;
+  }
+  return availableModels[0] || "gpt-image-2";
 }
 
 function buildReferenceImageFromResult(image: StoredImage, fileName: string): StoredReferenceImage | null {
@@ -155,6 +210,8 @@ function taskDataToStoredImage(image: StoredImage, task: ImageTask): StoredImage
         ...image,
         taskId: task.id,
         status: "error",
+        taskStatus: undefined,
+        progress: undefined,
         error: "Không nhận được dữ liệu ảnh",
       };
     }
@@ -162,10 +219,13 @@ function taskDataToStoredImage(image: StoredImage, task: ImageTask): StoredImage
       ...image,
       taskId: task.id,
       status: "success",
+      taskStatus: undefined,
+      progress: undefined,
       b64_json: first.b64_json,
       url: first.url,
       revised_prompt: first.revised_prompt,
       error: undefined,
+      durationMs: task.duration_ms,
     };
   }
 
@@ -174,15 +234,32 @@ function taskDataToStoredImage(image: StoredImage, task: ImageTask): StoredImage
       ...image,
       taskId: task.id,
       status: "error",
+      taskStatus: undefined,
+      progress: undefined,
       error: task.error || "Tạo thất bại",
+      durationMs: task.duration_ms,
     };
   }
+
+  const newTaskStatus = task.status === "queued" ? "queued" : task.status === "running" ? "running" : image.taskStatus;
+  const shouldSetStartTime = newTaskStatus === "running" && !image.startTime;
+  const startTime = shouldSetStartTime ? Date.now() : image.startTime;
+  // elapsedSecs chỉ sử dụng giá trị trả về từ backend, đảm bảo tính thời gian từ image_stream_resolve_start
+  const elapsedSecs =
+    newTaskStatus === "running" && typeof task.elapsed_secs === "number"
+      ? task.elapsed_secs
+      : undefined;
 
   return {
     ...image,
     taskId: task.id,
     status: "loading",
+    taskStatus: newTaskStatus,
+    progress: task.progress || image.progress,
     error: undefined,
+    startTime,
+    elapsedSecs,
+    elapsedUpdatedAt: elapsedSecs != null ? Date.now() : undefined,
   };
 }
 
@@ -222,6 +299,11 @@ function deriveTurnStatus(turn: ImageTurn): Pick<ImageTurn, "status" | "error"> 
   const failedCount = turn.images.filter((image) => image.status === "error").length;
   const successCount = turn.images.filter((image) => image.status === "success").length;
   if (loadingCount > 0) {
+    // Nếu bất kỳ ảnh nào có taskStatus là running, thì trạng thái là generating
+    const hasRunning = turn.images.some((image) => image.taskStatus === "running");
+    if (hasRunning) {
+      return { status: "generating", error: undefined };
+    }
     return { status: turn.status === "queued" ? "queued" : "generating", error: undefined };
   }
   if (failedCount > 0) {
@@ -230,7 +312,25 @@ function deriveTurnStatus(turn: ImageTurn): Pick<ImageTurn, "status" | "error"> 
   if (successCount > 0) {
     return { status: "success", error: undefined };
   }
-  return { status: "queued", error: undefined };
+  // Tất cả ảnh đều bị bỏ qua (images trống), coi là hoàn thành
+  return { status: "success", error: undefined };
+}
+
+function finalizeIdleQueuedTurn(turn: ImageTurn): ImageTurn {
+  if (
+    (turn.status !== "queued" && turn.status !== "generating") ||
+    turn.images.some((image) => image.status === "loading")
+  ) {
+    return turn;
+  }
+  const derived = deriveTurnStatus(turn);
+  if (derived.status === turn.status && derived.error === turn.error) {
+    return turn;
+  }
+  return {
+    ...turn,
+    ...derived,
+  };
 }
 
 async function syncConversationImageTasks(items: ImageConversation[]) {
@@ -240,7 +340,11 @@ async function syncConversationImageTasks(items: ImageConversation[]) {
         conversation.turns.flatMap((turn) =>
           turn.resultsDeleted
             ? []
-            : turn.images.flatMap((image) => (image.status === "loading" && image.taskId ? [image.taskId] : [])),
+            : turn.images.flatMap((image) =>
+                (image.status === "loading" || (image.status === "error" && image.taskId))
+                  ? [image.taskId!]
+                  : [],
+              ),
         ),
       ),
     ),
@@ -261,7 +365,10 @@ async function syncConversationImageTasks(items: ImageConversation[]) {
     const turns = conversation.turns.map((turn) => {
       let turnChanged = false;
       const images = turn.images.map((image) => {
-        if (image.status !== "loading" || !image.taskId) {
+        if (!image.taskId) {
+          return image;
+        }
+        if (image.status !== "loading" && image.status !== "error") {
           return image;
         }
         const task = taskMap.get(image.taskId);
@@ -305,7 +412,7 @@ async function recoverConversationHistory(items: ImageConversation[]) {
   let changed = false;
   const normalized = items.map((conversation) => {
     const turns = conversation.turns.map((turn) => {
-      if (turn.status !== "queued" && turn.status !== "generating") {
+      if (turn.status !== "queued" && turn.status !== "generating" && turn.status !== "error") {
         return turn;
       }
 
@@ -321,15 +428,16 @@ async function recoverConversationHistory(items: ImageConversation[]) {
           error: "Trang được làm mới hoặc tác vụ bị gián đoạn, không tìm thấy ID tác vụ có thể khôi phục",
         };
       });
-      const derived = deriveTurnStatus({ ...turn, images });
-      if (!turnChanged && derived.status === turn.status && derived.error === turn.error) {
+      const candidateTurn = turnChanged ? { ...turn, images } : turn;
+      const nextTurn = finalizeIdleQueuedTurn(candidateTurn);
+      const derived = turnChanged ? deriveTurnStatus(nextTurn) : { status: nextTurn.status, error: nextTurn.error };
+      if (!turnChanged && nextTurn === turn && derived.status === turn.status && derived.error === turn.error) {
         return turn;
       }
       changed = true;
       return {
-        ...turn,
+        ...nextTurn,
         ...derived,
-        images,
       };
     });
 
@@ -356,13 +464,30 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
   const { setActions } = usePageHeaderActions();
   const didLoadQuotaRef = useRef(false);
   const conversationsRef = useRef<ImageConversation[]>([]);
+  const loadCancelledRef = useRef(false);
   const resultsViewportRef = useRef<HTMLDivElement>(null);
+  const lastConversationIdRef = useRef<string | null>(null);
+  const shouldStickToBottomRef = useRef(true);
+  const scrollRafRef = useRef<number | null>(null);
+  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollPositionsRef = useRef<Map<string, number>>(loadScrollPositions());
+  const isRestoringScrollRef = useRef(false);
+  const scrollRestoreGenerationRef = useRef(0);
+
+  const config = useSettingsStore((state) => state.config);
+  const imageTimeoutRetrySecs = Number(config?.image_timeout_retry_secs || 30);
 
   const [imagePrompt, setImagePrompt] = useState("");
-  const [imageCount, setImageCount] = useState("1");
-  const [imageSize, setImageSize] = useState("");
+  const [imageCount, setImageCount] = useState("3");
+  const [imageRatio, setImageRatio] = useState("auto");
+  const [imageTier, setImageTier] = useState("1k");
+  const [imageWidth, setImageWidth] = useState("1024");
+  const [imageHeight, setImageHeight] = useState("1024");
+  const [imageQuality, setImageQuality] = useState("auto");
+  const [imageModel, setImageModel] = useState<ImageModel>("gpt-image-2");
+  const [imageModels, setImageModels] = useState<ImageModel[]>(["gpt-image-2"]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [referenceImageFiles, setReferenceImageFiles] = useState<File[]>([]);
   const [referenceImages, setReferenceImages] = useState<StoredReferenceImage[]>([]);
@@ -378,6 +503,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
   const [turnViewSlot, setTurnViewSlot] = useState<Record<string, number>>({});
   const turnRevisionsRef = useRef<Record<string, StoredImage[][]>>({});
   const [removeBgResults, setRemoveBgResults] = useState<Record<string, string>>({});
+  const scrollToLatestBtnRef = useRef<HTMLButtonElement>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<
     | { type: "one"; id: string }
     | { type: "prompt"; conversationId: string; turnId: string }
@@ -385,6 +511,11 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     | { type: "all" }
     | null
   >(null);
+  const [timeoutRetry, setTimeoutRetry] = useState<{
+    conversationId: string;
+    taskId: string;
+    taskError: string;
+  } | null>(null);
 
   const parsedCount = useMemo(() => Number(clampImageCount(imageCount)), [imageCount]);
   const selectedConversation = useMemo(
@@ -424,57 +555,184 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     conversationsRef.current = conversations;
   }, [conversations]);
 
+  const scrollResultsToLatest = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const element = resultsViewportRef.current;
+    if (!element) {
+      return;
+    }
+
+    shouldStickToBottomRef.current = true;
+    const btn = scrollToLatestBtnRef.current;
+    if (btn) btn.style.display = "none";
+    element.scrollTo({
+      top: element.scrollHeight,
+      behavior,
+    });
+  }, []);
+
+  const handleResultsScroll = useCallback(() => {
+    if (scrollRafRef.current !== null) {
+      return;
+    }
+
+    scrollRafRef.current = window.requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      const element = resultsViewportRef.current;
+      if (!element) {
+        return;
+      }
+
+      // Không xử lý sự kiện cuộn trong quá trình khôi phục vị trí cuộn
+      if (isRestoringScrollRef.current) {
+        return;
+      }
+
+      // Lưu vị trí cuộn phiên hiện tại (debounce 300ms ghi vào sessionStorage)
+      const convId = lastConversationIdRef.current;
+      if (convId) {
+        scrollPositionsRef.current.set(convId, element.scrollTop);
+        if (scrollSaveTimerRef.current) clearTimeout(scrollSaveTimerRef.current);
+        scrollSaveTimerRef.current = setTimeout(() => {
+          scrollSaveTimerRef.current = null;
+          saveScrollPositions(scrollPositionsRef.current);
+        }, 300);
+      }
+
+      const isAwayFromLatest = getResultsDistanceFromBottom(element) > SCROLL_TO_LATEST_THRESHOLD;
+      shouldStickToBottomRef.current = !isAwayFromLatest;
+      // Trực tiếp thao tác DOM để kiểm soát ẩn/hiển nút, tránh setState kích hoạt re-render toàn component
+      const btn = scrollToLatestBtnRef.current;
+      if (btn) {
+        if (isAwayFromLatest) {
+          btn.style.display = "";
+        } else {
+          btn.style.display = "none";
+        }
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+      }
+      if (scrollSaveTimerRef.current !== null) {
+        clearTimeout(scrollSaveTimerRef.current);
+        saveScrollPositions(scrollPositionsRef.current);
+      }
+    };
+  }, []);
+
+  const loadHistory = useCallback(async () => {
+    try {
+      const storedRatio =
+        typeof window !== "undefined" ? window.localStorage.getItem(IMAGE_RATIO_STORAGE_KEY) : null;
+      const storedTier =
+        typeof window !== "undefined" ? window.localStorage.getItem(IMAGE_TIER_STORAGE_KEY) : null;
+      const storedQuality =
+        typeof window !== "undefined" ? window.localStorage.getItem(IMAGE_QUALITY_STORAGE_KEY) : null;
+      const storedCount =
+        typeof window !== "undefined" ? window.localStorage.getItem(IMAGE_COUNT_STORAGE_KEY) : null;
+      setImageRatio(storedRatio || "1:1");
+      setImageTier(storedTier || "1k");
+      setImageWidth("1024");
+      setImageHeight("1024");
+      setImageQuality(storedQuality || "auto");
+      setImageCount(storedCount ? clampImageCount(storedCount) : "1");
+
+      const items = await listImageConversations();
+      const normalizedItems = await recoverConversationHistory(items);
+      if (loadCancelledRef.current) {
+        return;
+      }
+
+      conversationsRef.current = normalizedItems;
+      setConversations(normalizedItems);
+      const storedConversationId =
+        typeof window !== "undefined" ? window.localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY) : null;
+      const nextSelectedConversationId =
+        (storedConversationId && normalizedItems.some((conversation) => conversation.id === storedConversationId)
+          ? storedConversationId
+          : null) ?? pickFallbackConversationId(normalizedItems);
+      setSelectedConversationId(nextSelectedConversationId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể đọc bản ghi phiên";
+      toast.error(message);
+    } finally {
+      if (!loadCancelledRef.current) {
+        setIsLoadingHistory(false);
+      }
+    }
+  }, [
+    setImageRatio,
+    setImageTier,
+    setImageWidth,
+    setImageHeight,
+    setImageQuality,
+    setImageCount,
+    setConversations,
+    setSelectedConversationId,
+    setIsLoadingHistory,
+  ]);
+
+  // Handle bfcache (back/forward cache) — re-sync task status on page restore
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        void loadHistory();
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [loadHistory]);
+
+  useEffect(() => {
+    loadCancelledRef.current = false;
+    void loadHistory();
+    return () => {
+      loadCancelledRef.current = true;
+      // Lưu vị trí cuộn hiện tại vào sessionStorage khi component unmount
+      const element = resultsViewportRef.current;
+      const convId = lastConversationIdRef.current;
+      if (element && convId) {
+        scrollPositionsRef.current.set(convId, element.scrollTop);
+        saveScrollPositions(scrollPositionsRef.current);
+      }
+      activeConversationQueueIds.clear();
+      if (pollAbortController) {
+        pollAbortController.abort();
+        pollAbortController = null;
+      }
+    };
+  }, [loadHistory]);
+
   useEffect(() => {
     let cancelled = false;
 
-    const loadHistory = async () => {
+    const loadImageModels = async () => {
       try {
-        const storedSize = typeof window !== "undefined" ? window.localStorage.getItem(IMAGE_SIZE_STORAGE_KEY) : null;
-        const storedCount = typeof window !== "undefined" ? window.localStorage.getItem(IMAGE_COUNT_STORAGE_KEY) : null;
-        setImageSize(storedSize || "");
-        setImageCount(storedCount ? clampImageCount(storedCount) : "1");
-
-        const items = await listImageConversations();
-        const normalizedItems = await recoverConversationHistory(items);
-        if (cancelled) {
+        const data = await fetchModels();
+        const available = filterImageModels(Array.isArray(data.data) ? data.data : []);
+        if (cancelled || available.length === 0) {
           return;
         }
-
-        conversationsRef.current = normalizedItems;
-        setConversations(normalizedItems);
-
-        // Populate turnRevisions từ revisions đã lưu trong mỗi turn
-        const storedRevisions: Record<string, StoredImage[][]> = {};
-        for (const conv of normalizedItems) {
-          for (const turn of conv.turns) {
-            if (turn.revisions && turn.revisions.length > 0) {
-              storedRevisions[turn.id] = turn.revisions;
-            }
+        setImageModels(available);
+        const storedModel = typeof window !== "undefined" ? window.localStorage.getItem(IMAGE_MODEL_STORAGE_KEY) : null;
+        setImageModel((current) => {
+          if (available.includes(current)) {
+            return current;
           }
-        }
-        if (Object.keys(storedRevisions).length > 0) {
-          turnRevisionsRef.current = storedRevisions;
-          setTurnRevisions(storedRevisions);
-        }
-
-        const storedConversationId =
-          typeof window !== "undefined" ? window.localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY) : null;
-        const nextSelectedConversationId =
-          (storedConversationId && normalizedItems.some((conversation) => conversation.id === storedConversationId)
-            ? storedConversationId
-            : null) ?? pickFallbackConversationId(normalizedItems);
-        setSelectedConversationId(nextSelectedConversationId);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Không thể đọc bản ghi phiên";
-        toast.error(message);
-      } finally {
+          return normalizeStoredImageModel(storedModel, available);
+        });
+      } catch {
         if (!cancelled) {
-          setIsLoadingHistory(false);
+          setImageModels(["gpt-image-2"]);
         }
       }
     };
 
-    void loadHistory();
+    void loadImageModels();
     return () => {
       cancelled = true;
     };
@@ -510,6 +768,98 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     };
   }, [isAdmin, loadQuota]);
 
+  // Lưu vị trí cuộn phiên cũ khi chuyển đổi phiên, và ẩn container để tránh nhấp nháy
+  useLayoutEffect(() => {
+    if (!selectedConversation) {
+      lastConversationIdRef.current = null;
+      shouldStickToBottomRef.current = true;
+      const btn = scrollToLatestBtnRef.current;
+      if (btn) btn.style.display = "none";
+      return;
+    }
+
+    const element = resultsViewportRef.current;
+    if (!element) {
+      return;
+    }
+
+    const didSwitchConversation = lastConversationIdRef.current !== selectedConversation.id;
+
+    if (didSwitchConversation) {
+      // Tăng generation để các callback rAF chưa hoàn thành trước đó bị vô hiệu hoá
+      scrollRestoreGenerationRef.current += 1;
+
+      // Trước tiên lưu vị trí cuộn phiên cũ (lastConversationIdRef vẫn là giá trị cũ)
+      const oldConvId = lastConversationIdRef.current;
+      if (oldConvId) {
+        scrollPositionsRef.current.set(oldConvId, element.scrollTop);
+        saveScrollPositions(scrollPositionsRef.current);
+      }
+      // Cập nhật thành ID phiên mới
+      lastConversationIdRef.current = selectedConversation.id;
+
+      // Nếu có vị trí cuộn đã lưu, ẩn container để tránh người dùng thấy scrollTop=0
+      const savedScrollTop = scrollPositionsRef.current.get(selectedConversation.id);
+      if (savedScrollTop != null && savedScrollTop > 0) {
+        element.style.visibility = "hidden";
+        isRestoringScrollRef.current = true;
+      }
+    }
+  }, [selectedConversation?.id]);
+
+  // Khôi phục vị trí cuộn hoặc theo dõi nội dung mới nhất
+  useEffect(() => {
+    if (!selectedConversation) {
+      return;
+    }
+
+    const element = resultsViewportRef.current;
+    if (!element) {
+      return;
+    }
+
+    const savedScrollTop = scrollPositionsRef.current.get(selectedConversation.id);
+
+    if (savedScrollTop != null && savedScrollTop > 0) {
+      // Ghi lại generation hiện tại để phát hiện xem đã bị thay thế bởi chuyển đổi mới
+      const generation = scrollRestoreGenerationRef.current;
+      // Container đã được đặt visibility:hidden trong useLayoutEffect, người dùng không thể thấy quá trình cuộn
+      requestAnimationFrame(() => {
+        // Nếu generation đã thay đổi, có nghĩa người dùng lại chuyển đổi, bỏ qua khôi phục lần này
+        if (scrollRestoreGenerationRef.current !== generation) return;
+        element.scrollTop = savedScrollTop;
+        // Chờ thêm một frame để đảm bảo scrollTop có hiệu lực, rồi hiển thị container
+        requestAnimationFrame(() => {
+          // Kiểm tra lại generation
+          if (scrollRestoreGenerationRef.current !== generation) return;
+          const isAwayFromLatest = getResultsDistanceFromBottom(element) > SCROLL_TO_LATEST_THRESHOLD;
+          shouldStickToBottomRef.current = !isAwayFromLatest;
+          const btn = scrollToLatestBtnRef.current;
+          if (btn) btn.style.display = isAwayFromLatest ? "" : "none";
+          // Hiển thị container — người dùng trực tiếp thấy nội dung đúng vị trí
+          element.style.visibility = "";
+          isRestoringScrollRef.current = false;
+        });
+      });
+      // Xoá vị trí đã lưu sau khi khôi phục, lần tới khi nội dung cập nhật sẽ theo logic shouldFollowLatest bình thường
+      scrollPositionsRef.current.delete(selectedConversation.id);
+      return;
+    }
+
+    // Không có vị trí đã lưu, xử lý theo logic bình thường
+    const shouldFollowLatest =
+      shouldStickToBottomRef.current ||
+      getResultsDistanceFromBottom(element) <= SCROLL_TO_LATEST_THRESHOLD;
+
+    if (shouldFollowLatest) {
+      requestAnimationFrame(() => scrollResultsToLatest("smooth"));
+      return;
+    }
+
+    const btn = scrollToLatestBtnRef.current;
+    if (btn) btn.style.display = "";
+  }, [selectedConversation?.id, selectedConversation?.updatedAt, selectedConversation?.turns.length, scrollResultsToLatest]);
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
@@ -527,12 +877,11 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       return;
     }
 
-    if (imageSize) {
-      window.localStorage.setItem(IMAGE_SIZE_STORAGE_KEY, imageSize);
-      return;
-    }
-    window.localStorage.removeItem(IMAGE_SIZE_STORAGE_KEY);
-  }, [imageSize]);
+    window.localStorage.setItem(IMAGE_RATIO_STORAGE_KEY, imageRatio);
+    window.localStorage.setItem(IMAGE_TIER_STORAGE_KEY, imageTier);
+    window.localStorage.setItem(IMAGE_QUALITY_STORAGE_KEY, imageQuality);
+    window.localStorage.setItem(IMAGE_MODEL_STORAGE_KEY, imageModel);
+  }, [imageRatio, imageTier, imageQuality, imageModel]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && parsedCount > 0) {
@@ -591,6 +940,9 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
   }, [clearComposerInputs]);
 
   const handleCreateDraft = useCallback(() => {
+    shouldStickToBottomRef.current = true;
+    const btn = scrollToLatestBtnRef.current;
+    if (btn) btn.style.display = "none";
     setSelectedConversationId(null);
     resetComposer();
     textareaRef.current?.focus();
@@ -641,16 +993,24 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
         if (turn.id !== turnId) {
           return turn;
         }
+        const images =
+          part === "results"
+            ? turn.images.map((image) => ({ id: image.id, status: "error" as const, error: "Kết quả tạo đã bị xoá" }))
+            : turn.images;
+        const derived =
+          part === "results"
+            ? deriveTurnStatus({
+                ...turn,
+                images,
+              })
+            : { status: turn.status, error: turn.error };
         const nextTurn = {
           ...turn,
           prompt: part === "prompt" ? "" : turn.prompt,
           promptDeleted: part === "prompt" ? true : turn.promptDeleted,
           resultsDeleted: part === "results" ? true : turn.resultsDeleted,
-          status: part === "results" && turn.status === "generating" ? "error" as const : turn.status,
-          images:
-            part === "results"
-              ? turn.images.map((image) => ({ id: image.id, status: "error" as const, error: "Kết quả tạo đã bị xoá" }))
-              : turn.images,
+          ...derived,
+          images,
         };
         return nextTurn.promptDeleted && nextTurn.resultsDeleted ? null : nextTurn;
       })
@@ -679,6 +1039,20 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       toast.success("Đã xoá hết lịch sử");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể xoá hết lịch sử";
+      toast.error(message);
+    }
+  };
+
+  const handleRenameConversation = async (id: string, title: string) => {
+    const nextConversations = conversations.map((item) =>
+      item.id === id ? { ...item, title, updatedAt: new Date().toISOString() } : item,
+    );
+    conversationsRef.current = sortImageConversations(nextConversations);
+    setConversations(conversationsRef.current);
+    try {
+      await renameImageConversation(id, title);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Đổi tên thất bại";
       toast.error(message);
     }
   };
@@ -817,7 +1191,13 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     setSelectedConversationId(conversationId);
     setImagePrompt(turn.prompt);
     setImageCount(String(Math.max(1, turn.count || turn.images.length || 1)));
-    setImageSize(turn.size);
+    setImageRatio(turn.ratio);
+    setImageTier(turn.tier);
+    const parsedSize = parseImageSize(turn.size);
+    setImageWidth(parsedSize.width);
+    setImageHeight(parsedSize.height);
+    setImageQuality(turn.quality);
+    setImageModel(turn.model);
     setReferenceImages(turn.referenceImages);
     setReferenceImageFiles(
       turn.referenceImages.map((image) => dataUrlToFile(image.dataUrl, image.name, image.type)),
@@ -839,7 +1219,13 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     setSelectedConversationId(null);
     setImagePrompt(turn.prompt);
     setImageCount(String(Math.max(1, turn.count || turn.images.length || 1)));
-    setImageSize(turn.size);
+    setImageRatio(turn.ratio);
+    setImageTier(turn.tier);
+    const parsedSize = parseImageSize(turn.size);
+    setImageWidth(parsedSize.width);
+    setImageHeight(parsedSize.height);
+    setImageQuality(turn.quality);
+    setImageModel(turn.model);
     setReferenceImages(turn.referenceImages);
     setReferenceImageFiles(
       turn.referenceImages.map((image) => dataUrlToFile(image.dataUrl, image.name, image.type)),
@@ -927,7 +1313,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
               const task = taskMap.get(taskId);
               return task ? taskDataToStoredImage({ ...image, taskId }, task) : image;
             });
-            const derived = deriveTurnStatus({ ...turn, status: "generating", images });
+            const derived = deriveTurnStatus({ ...turn, images });
             return {
               ...turn,
               ...derived,
@@ -943,25 +1329,6 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       };
 
       try {
-        await updateConversation(conversationId, (current) => {
-          const conversation = current ?? snapshot;
-          return {
-            ...conversation,
-            updatedAt: new Date().toISOString(),
-            turns: conversation.turns.map((turn) =>
-              turn.id === activeTurn.id
-                ? {
-                    ...turn,
-                    status: "generating",
-                    error: undefined,
-                    images: turn.images.map((image) =>
-                      image.status === "loading" ? { ...image, taskId: image.taskId || image.id } : image,
-                    ),
-                  }
-                : turn,
-            ),
-          };
-        });
 
         const referenceFiles = activeTurn.referenceImages.map((image, index) =>
           dataUrlToFile(image.dataUrl, image.name || `${activeTurn.id}-${index + 1}.png`, image.type),
@@ -975,12 +1342,14 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           pendingImages.map((image) => {
             const taskId = image.taskId || image.id;
             return activeTurn.mode === "edit"
-              ? createImageEditTask(taskId, referenceFiles, activeTurn.prompt, activeTurn.model, activeTurn.size)
-              : createImageGenerationTask(taskId, activeTurn.prompt, activeTurn.model, activeTurn.size);
+              ? createImageEditTask(taskId, referenceFiles, activeTurn.prompt, activeTurn.model, activeTurn.size, activeTurn.quality)
+              : createImageGenerationTask(taskId, activeTurn.prompt, activeTurn.model, activeTurn.size, activeTurn.quality);
           }),
         );
         await applyTasks(submitted);
 
+        let consecutiveErrors = 0;
+        const retryingTaskIdsRef = new Set<string>();
         while (true) {
           const latestConversation = conversationsRef.current.find((conversation) => conversation.id === conversationId);
           const latestTurn = latestConversation?.turns.find((turn) => turn.id === activeTurn.id);
@@ -993,23 +1362,50 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           }
 
           await sleep(2000);
-          const taskList = await fetchImageTasks(loadingTaskIds);
-          if (taskList.items.length > 0) {
-            await applyTasks(taskList.items);
-          }
-          if (taskList.missing_ids.length > 0 && latestTurn) {
-            const missingImages = latestTurn.images.filter(
-              (image) => image.status === "loading" && image.taskId && taskList.missing_ids.includes(image.taskId),
-            );
-            const resubmitted = await Promise.all(
-              missingImages.map((image) =>
-                activeTurn.mode === "edit"
-                  ? createImageEditTask(image.taskId || image.id, referenceFiles, activeTurn.prompt, activeTurn.model, activeTurn.size)
-                  : createImageGenerationTask(image.taskId || image.id, activeTurn.prompt, activeTurn.model, activeTurn.size),
-              ),
-            );
-            if (resubmitted.length > 0) {
-              await applyTasks(resubmitted);
+          try {
+            const taskList = await fetchImageTasks(loadingTaskIds);
+            consecutiveErrors = 0;
+            if (taskList.items.length > 0) {
+              // Phát hiện xem có lỗi timeout và cần hiển thị nút thử lại
+              const timeoutTask = taskList.items.find(
+                (task) =>
+                  task.status === "error" &&
+                  task.error?.includes("timeout") &&
+                  task.conversation_id &&
+                  !retryingTaskIdsRef.has(task.id),
+              );
+              if (timeoutTask && timeoutTask.conversation_id) {
+                retryingTaskIdsRef.add(timeoutTask.id);
+                setTimeoutRetry({
+                  conversationId: timeoutTask.conversation_id,
+                  taskId: timeoutTask.id,
+                  taskError: timeoutTask.error || "Tạo ảnh hết thời gian",
+                });
+                // Áp dụng lỗi timeout cho hình ảnh tương ứng, hiển thị nút tiếp tục chờ
+                await applyTasks([timeoutTask]);
+              } else {
+                await applyTasks(taskList.items);
+              }
+            }
+            if (taskList.missing_ids.length > 0 && latestTurn) {
+              const missingImages = latestTurn.images.filter(
+                (image) => image.status === "loading" && image.taskId && taskList.missing_ids.includes(image.taskId),
+              );
+              const resubmitted = await Promise.all(
+                missingImages.map((image) =>
+                  activeTurn.mode === "edit"
+                    ? createImageEditTask(image.taskId || image.id, referenceFiles, activeTurn.prompt, activeTurn.model, activeTurn.size, activeTurn.quality)
+                    : createImageGenerationTask(image.taskId || image.id, activeTurn.prompt, activeTurn.model, activeTurn.size, activeTurn.quality),
+                ),
+              );
+              if (resubmitted.length > 0) {
+                await applyTasks(resubmitted);
+              }
+            }
+          } catch (pollError) {
+            consecutiveErrors += 1;
+            if (consecutiveErrors >= 10) {
+              throw pollError;
             }
           }
         }
@@ -1150,6 +1546,98 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     [runConversationQueue],
   );
 
+  const handleTimeoutRetryContinue = useCallback(async () => {
+    if (!timeoutRetry) return;
+    const { conversationId, taskId } = timeoutRetry;
+    try {
+      await resumeImagePoll(taskId, imageTimeoutRetrySecs);
+      // Đặt lại trạng thái hình ảnh tương ứng thành loading và xoá lỗi
+      void updateConversation(conversationId, (current) => {
+        const conversation = current ?? conversationsRef.current.find((c) => c.id === conversationId);
+        if (!conversation) return current!;
+        return {
+          ...conversation,
+          updatedAt: new Date().toISOString(),
+          turns: conversation.turns.map((turn) => {
+            const hasLoading = turn.images.some((image) => image.taskId === taskId);
+            if (!hasLoading) return turn;
+            return {
+              ...turn,
+              status: "generating" as const,
+              error: undefined,
+              images: turn.images.map((image) =>
+                image.taskId === taskId
+                  ? { ...image, status: "loading" as const, error: undefined, taskStatus: "running" as const, startTime: image.startTime || Date.now() }
+                  : image
+              ),
+            };
+          }),
+        };
+      });
+      // Xoá trạng thái thử lại
+      setTimeoutRetry(null);
+      toast.info(`Đã tiếp tục chờ ${imageTimeoutRetrySecs} giây`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Tiếp tục polling thất bại";
+      toast.error(msg);
+      setTimeoutRetry(null);
+    }
+  }, [timeoutRetry, updateConversation, imageTimeoutRetrySecs]);
+
+  const handleTimeoutRetryCancel = useCallback(() => {
+    if (!timeoutRetry) return;
+    const { conversationId: convId, taskId, taskError } = timeoutRetry;
+    // Áp dụng lỗi timeout cho hình ảnh tương ứng
+    void updateConversation(convId, (current) => {
+      const conversation = current ?? conversationsRef.current.find((c) => c.id === convId);
+      if (!conversation) return current!;
+      return {
+        ...conversation,
+        updatedAt: new Date().toISOString(),
+        turns: conversation.turns.map((turn) => {
+          const hasLoading = turn.images.some((image) => image.status === "loading" && image.taskId === taskId);
+          if (!hasLoading) return turn;
+          const images = turn.images.map((image) =>
+            image.taskId === taskId ? { ...image, status: "error" as const, error: taskError } : image,
+          );
+          const derived = deriveTurnStatus({ ...turn, images });
+          return {
+            ...turn,
+            ...derived,
+            images,
+          };
+        }),
+      };
+    });
+    setTimeoutRetry(null);
+    toast.error(taskError);
+  }, [timeoutRetry, updateConversation]);
+
+  const handleDismissErrors = useCallback(
+    async (conversationId: string, turnId: string) => {
+      await updateConversation(conversationId, (current) => {
+        const conversation = current ?? conversationsRef.current.find((c) => c.id === conversationId);
+        if (!conversation) return current!;
+        return {
+          ...conversation,
+          updatedAt: new Date().toISOString(),
+          turns: conversation.turns.map((turn) => {
+            if (turn.id !== turnId) return turn;
+            const successImages = turn.images.filter((image) => image.status !== "error");
+            const derived = deriveTurnStatus({ ...turn, images: successImages });
+            return {
+              ...turn,
+              ...derived,
+              count: successImages.length,
+              images: successImages,
+            };
+          }),
+        };
+      });
+    },
+    [updateConversation],
+  );
+
   useEffect(() => {
     for (const conversation of conversations) {
       if (
@@ -1181,14 +1669,18 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
     const now = new Date().toISOString();
     const conversationId = targetConversation?.id ?? createId();
     const turnId = createId();
+    const imageSize = `${imageWidth || 1024}x${imageHeight || 1024}`;
     const draftTurn: ImageTurn = {
       id: turnId,
       prompt,
-      model: "gpt-image-2",
+      model: imageModel,
       mode: effectiveImageMode,
       referenceImages: effectiveImageMode === "edit" ? referenceImages : [],
       count: parsedCount,
       size: imageSize,
+      ratio: imageRatio,
+      tier: imageTier,
+      quality: imageQuality,
       images: createLoadingImages(turnId, parsedCount),
       createdAt: now,
       status: "queued",
@@ -1206,8 +1698,11 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           createdAt: now,
           updatedAt: now,
           turns: [draftTurn],
-        };
+      };
 
+    shouldStickToBottomRef.current = true;
+    const btn = scrollToLatestBtnRef.current;
+    if (btn) btn.style.display = "none";
     setSelectedConversationId(conversationId);
     clearComposerInputs();
 
@@ -1226,41 +1721,20 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      <section className="grid h-[calc(100dvh-7rem)] min-h-0 w-full grid-cols-1 gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="hidden lg:flex flex-col overflow-hidden rounded-2xl border-border/80 bg-surface shadow-sm p-0">
-          <div className="flex items-center justify-between border-b border-border bg-surface-secondary/40 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <History className="size-4 text-content-tertiary" />
-              <span className="text-sm font-semibold text-content">Lịch sử</span>
-              <Badge variant="secondary" className="rounded-md bg-surface-tertiary px-1.5 py-0 text-[11px] text-content">
-                {conversations.length}
-              </Badge>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 rounded-md text-content-tertiary hover:bg-rose-50 hover:text-rose-600"
-              onClick={openClearHistoryConfirm}
-              disabled={conversations.length === 0}
-              title="Xoá hết lịch sử"
-            >
-              <Trash2 className="size-4" />
-            </Button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-            <ImageSidebar
-              conversations={conversations}
-              isLoadingHistory={isLoadingHistory}
-              selectedConversationId={selectedConversationId}
-              onCreateDraft={handleCreateDraft}
-              onClearHistory={openClearHistoryConfirm}
-              onSelectConversation={setSelectedConversationId}
-              onDeleteConversation={openDeleteConversationConfirm}
-              formatConversationTime={formatConversationTime}
-              hideActionButtons
-            />
-          </div>
-        </Card>
+      <section className="mx-auto grid h-[calc(100dvh-6.5rem)] min-h-0 w-full max-w-[1380px] grid-cols-1 gap-2 overflow-hidden px-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:h-[calc(100dvh-5.25rem)] sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="hidden h-full min-h-0 border-r border-stone-200/70 pr-3 lg:block">
+          <ImageSidebar
+            conversations={conversations}
+            isLoadingHistory={isLoadingHistory}
+            selectedConversationId={selectedConversationId}
+            onCreateDraft={handleCreateDraft}
+            onClearHistory={openClearHistoryConfirm}
+            onSelectConversation={setSelectedConversationId}
+            onDeleteConversation={openDeleteConversationConfirm}
+            onRenameConversation={handleRenameConversation}
+            formatConversationTime={formatConversationTime}
+          />
+        </div>
 
         <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
           <DialogContent className="flex h-[min(82dvh,760px)] w-[92vw] max-w-[460px] flex-col overflow-hidden rounded-[32px] border-border/80 bg-surface p-0 shadow-[0_32px_110px_-38px_rgba(15,23,42,0.45)] sm:rounded-[36px]">
@@ -1288,6 +1762,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
                   setIsHistoryOpen(false);
                 }}
                 onDeleteConversation={openDeleteConversationConfirm}
+                onRenameConversation={handleRenameConversation}
                 formatConversationTime={formatConversationTime}
                 hideActionButtons
               />
@@ -1315,61 +1790,88 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
             </Button>
           </div>
 
-          <div
-            ref={resultsViewportRef}
-            className="hide-scrollbar min-h-0 flex-1 overscroll-contain overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
-          >
-            <ImageResults
-              selectedConversation={selectedConversation}
-              onOpenLightbox={openLightbox}
-              onContinueEdit={handleContinueEdit}
-              onDeletePrompt={openDeletePromptConfirm}
-              onDeleteResults={openDeleteResultsConfirm}
-              onReuseTurnConfig={handleReuseTurnConfig}
-              onReuseTurnConfigAsNew={handleReuseTurnConfigAsNew}
-              onRegenerateTurn={handleRegenerateTurn}
-              onRetryImage={handleRetryImage}
-              formatConversationTime={formatConversationTime}
-              turnRevisions={turnRevisions}
-              turnViewSlot={turnViewSlot}
-              onTurnViewSlotChange={handleTurnViewSlotChange}
-              removeBgResults={removeBgResults}
-              onRemoveBgResult={(imageId, dataUrl, persistUrl, conversationId, turnId) => {
-                setRemoveBgResults((prev) => ({ ...prev, [imageId]: dataUrl }));
-                const conv = conversationsRef.current.find((c) => c.id === conversationId);
-                if (!conv) return;
-                const nextConv = {
-                  ...conv,
-                  turns: conv.turns.map((t) =>
-                    t.id === turnId
-                      ? { ...t, images: t.images.map((img) => img.id === imageId ? { ...img, remove_bg_url: persistUrl } : img) }
-                      : t,
-                  ),
-                };
-                void persistConversation(nextConv);
-              }}
-            />
+          <div className="relative min-h-0 flex-1">
+            <div
+              ref={resultsViewportRef}
+              onScroll={handleResultsScroll}
+              className="hide-scrollbar h-full overscroll-contain overflow-y-auto px-1 py-2 sm:px-4 sm:py-4"
+              style={{ contain: "layout style paint" }}
+            >
+              <ImageResults
+                selectedConversation={selectedConversation}
+                onOpenLightbox={openLightbox}
+                onContinueEdit={handleContinueEdit}
+                onDeletePrompt={openDeletePromptConfirm}
+                onDeleteResults={openDeleteResultsConfirm}
+                onReuseTurnConfig={handleReuseTurnConfig}
+                onReuseTurnConfigAsNew={handleReuseTurnConfigAsNew}
+                onRegenerateTurn={handleRegenerateTurn}
+                onRetryImage={handleRetryImage}
+                onTimeoutRetryContinue={handleTimeoutRetryContinue}
+                onDismissErrors={handleDismissErrors}
+                formatConversationTime={formatConversationTime}
+                turnRevisions={turnRevisions}
+                turnViewSlot={turnViewSlot}
+                onTurnViewSlotChange={handleTurnViewSlotChange}
+                removeBgResults={removeBgResults}
+                onRemoveBgResult={(imageId, dataUrl, persistUrl, conversationId, turnId) => {
+                  setRemoveBgResults((prev) => ({ ...prev, [imageId]: dataUrl }));
+                  const conv = conversationsRef.current.find((c) => c.id === conversationId);
+                  if (!conv) return;
+                  const nextConv = {
+                    ...conv,
+                    turns: conv.turns.map((t) =>
+                      t.id === turnId
+                        ? { ...t, images: t.images.map((img) => img.id === imageId ? { ...img, remove_bg_url: persistUrl } : img) }
+                        : t,
+                    ),
+                  };
+                  void persistConversation(nextConv);
+                }}
+              />
+            </div>
+
+            <button
+              ref={scrollToLatestBtnRef}
+              type="button"
+              aria-label="Cuộn đến tin nhắn mới nhất"
+              title="Cuộn đến tin nhắn mới nhất"
+              onClick={() => scrollResultsToLatest("smooth")}
+              className="absolute bottom-4 left-1/2 z-20 inline-flex size-11 -translate-x-1/2 items-center justify-center rounded-full border border-stone-200 bg-white/95 text-stone-700 shadow-lg shadow-stone-200/60 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 dark:border-white/10 dark:bg-stone-800/95 dark:text-stone-100 dark:shadow-black/40 dark:hover:bg-stone-700"
+              style={{ display: "none" }}
+            >
+              <ArrowDown className="size-5" />
+            </button>
           </div>
 
-          <div className="border-t border-border bg-surface-secondary/40 px-3 py-3 sm:px-4 sm:py-4">
-            <ImageComposer
-              prompt={imagePrompt}
-              imageCount={imageCount}
-              imageSize={imageSize}
-              availableQuota={availableQuota}
-              activeTaskCount={activeTaskCount}
-              referenceImages={referenceImages}
-              textareaRef={textareaRef}
-              fileInputRef={fileInputRef}
-              onPromptChange={setImagePrompt}
-              onImageCountChange={(value) => setImageCount(value ? clampImageCount(value) : "")}
-              onImageSizeChange={setImageSize}
-              onSubmit={handleSubmit}
-              onPickReferenceImage={() => fileInputRef.current?.click()}
-              onReferenceImageChange={handleReferenceImageChange}
-              onRemoveReferenceImage={handleRemoveReferenceImage}
-            />
-          </div>
+          <ImageComposer
+            prompt={imagePrompt}
+            imageCount={imageCount}
+            imageRatio={imageRatio}
+            imageTier={imageTier}
+            imageWidth={imageWidth}
+            imageHeight={imageHeight}
+            imageQuality={imageQuality}
+            imageModel={imageModel}
+            imageModels={imageModels}
+            availableQuota={availableQuota}
+            activeTaskCount={activeTaskCount}
+            referenceImages={referenceImages}
+            textareaRef={textareaRef}
+            fileInputRef={fileInputRef}
+            onPromptChange={setImagePrompt}
+            onImageCountChange={(value) => setImageCount(value ? clampImageCount(value) : "")}
+            onImageRatioChange={setImageRatio}
+            onImageTierChange={setImageTier}
+            onImageWidthChange={setImageWidth}
+            onImageHeightChange={setImageHeight}
+            onImageQualityChange={setImageQuality}
+            onImageModelChange={setImageModel}
+            onSubmit={handleSubmit}
+            onPickReferenceImage={() => fileInputRef.current?.click()}
+            onReferenceImageChange={handleReferenceImageChange}
+            onRemoveReferenceImage={handleRemoveReferenceImage}
+          />
         </Card>
       </section>
 
@@ -1443,6 +1945,8 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           </DialogContent>
         </Dialog>
       ) : null}
+
+
     </>
   );
 }

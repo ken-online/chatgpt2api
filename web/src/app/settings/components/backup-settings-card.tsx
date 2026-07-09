@@ -73,6 +73,7 @@ const includeLabels: Array<{ key: keyof BackupInclude; label: string }> = [
   { key: "accounts_snapshot", label: "Ảnh chụp tài khoản" },
   { key: "auth_keys_snapshot", label: "Ảnh chụp User Key" },
   { key: "images", label: "Thư mục tập tin ảnh" },
+  { key: "image_index", label: "Chỉ mục ảnh" },
 ];
 
 export function BackupSettingsCard() {

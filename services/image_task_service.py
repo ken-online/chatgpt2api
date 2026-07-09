@@ -68,13 +68,31 @@ def _public_task(task: dict[str, Any]) -> dict[str, Any]:
         "mode": task.get("mode"),
         "model": task.get("model"),
         "size": task.get("size"),
+        "quality": task.get("quality"),
         "created_at": task.get("created_at"),
         "updated_at": task.get("updated_at"),
     }
+    if task.get("conversation_id"):
+        item["conversation_id"] = task.get("conversation_id")
     if task.get("data") is not None:
         item["data"] = task.get("data")
+    if task.get("usage") is not None:
+        item["usage"] = task.get("usage")
     if task.get("error"):
         item["error"] = task.get("error")
+    if task.get("progress"):
+        item["progress"] = task.get("progress")
+    if task.get("duration_ms") is not None:
+        item["duration_ms"] = task.get("duration_ms")
+    if task.get("status") in (TASK_STATUS_RUNNING, TASK_STATUS_QUEUED):
+        if task.get("status") == TASK_STATUS_RUNNING:
+            # Trạng thái RUNNING chỉ được tính thời gian sau khi started_ts được đặt (image_stream_resolve_start)
+            base_ts = task.get("started_ts")
+        else:
+            # Trạng thái QUEUED bắt đầu tính thời gian từ created_ts (đang chờ xếp hàng)
+            base_ts = task.get("created_ts") or task.get("updated_ts")
+        if base_ts:
+            item["elapsed_secs"] = round(time.time() - base_ts, 1)
     return item
 
 
@@ -109,13 +127,15 @@ class ImageTaskService:
         prompt: str,
         model: str,
         size: str | None,
-        base_url: str,
+        quality: str = "auto",
+        base_url: str = "",
     ) -> dict[str, Any]:
         payload = {
             "prompt": prompt,
             "model": model,
             "n": 1,
             "size": size,
+            "quality": quality,
             "response_format": "url",
             "base_url": base_url,
         }
@@ -129,15 +149,19 @@ class ImageTaskService:
         prompt: str,
         model: str,
         size: str | None,
-        base_url: str,
-        images: list[tuple[bytes, str, str]],
+        quality: str = "auto",
+        base_url: str = "",
+        images: list[tuple[bytes, str, str]] | None = None,
+        masks: list[tuple[bytes, str, str]] | None = None,
     ) -> dict[str, Any]:
         payload = {
             "prompt": prompt,
-            "images": images,
+            "images": images or [],
+            "mask": masks or [],
             "model": model,
             "n": 1,
             "size": size,
+            "quality": quality,
             "response_format": "url",
             "base_url": base_url,
         }
@@ -196,8 +220,10 @@ class ImageTaskService:
                 "mode": mode,
                 "model": _clean(payload.get("model"), "gpt-image-2"),
                 "size": _clean(payload.get("size")),
+                "quality": _clean(payload.get("quality"), "auto"),
                 "created_at": now,
                 "updated_at": now,
+                "created_ts": time.time(),
             }
             self._tasks[key] = task
             self._save_locked()
@@ -223,16 +249,33 @@ class ImageTaskService:
     ) -> None:
         started = time.time()
         self._update_task(key, status=TASK_STATUS_RUNNING, error="")
+        # Tạo lệnh gọi lại tiến độ, cập nhật trạng thái tác vụ sau mỗi bước
+        def progress_callback(step: str) -> None:
+            if step == "image_stream_resolve_start":
+                self._update_task(key, started_ts=time.time())
+            self._update_task(key, progress=step)
+        # Thêm lệnh gọi lại tiến độ vào payload (handler sẽ trích xuất và chuyển đến ConversationRequest)
+        payload_with_progress = {**payload, "progress_callback": progress_callback}
         try:
             handler = self.edit_handler if mode == "edit" else self.generation_handler
-            result = handler(payload)
+            result = handler(payload_with_progress)
             if not isinstance(result, dict):
                 raise RuntimeError("image task returned streaming result unexpectedly")
             data = result.get("data")
+            account_email = _clean(result.get("_account_email") or result.get("account_email"))
             if not isinstance(data, list) or not data:
-                message = _clean(result.get("message")) or "image task returned no image data"
-                raise RuntimeError(message)
-            self._update_task(key, status=TASK_STATUS_SUCCESS, data=data, error="")
+                upstream = _clean(result.get("message"))
+                if upstream:
+                    message = upstream
+                else:
+                    message = "Không có tài khoản khả dụng trong nhóm hoặc tất cả các tài khoản đều bị giới hạn tốc độ, vui lòng kiểm tra trạng thái nhóm (hạn mức tài khoản, có bị cấm không, có đạt giới hạn tạo ảnh không)"
+                error = RuntimeError(message)
+                if account_email:
+                    setattr(error, "account_email", account_email)
+                raise error
+            usage = result.get("usage")
+            duration_ms = int((time.time() - started) * 1000)
+            self._update_task(key, status=TASK_STATUS_SUCCESS, data=data, usage=usage, error="", duration_ms=duration_ms)
             self._log_call(
                 identity,
                 mode,
@@ -241,10 +284,16 @@ class ImageTaskService:
                 " - hoàn thành",
                 request_preview=request_text(payload.get("prompt")),
                 urls=_collect_image_urls(data),
+                account_email=account_email,
             )
         except Exception as exc:
             error_message = str(exc) or "image task failed"
-            self._update_task(key, status=TASK_STATUS_ERROR, error=error_message, data=[])
+            account_email = _clean(getattr(exc, "account_email", ""))
+            conversation_id = _clean(getattr(exc, "conversation_id", ""))
+            duration_ms = int((time.time() - started) * 1000)
+            self._update_task(key, status=TASK_STATUS_ERROR, error=error_message, data=[],
+                              duration_ms=duration_ms,
+                              **({"conversation_id": conversation_id} if conversation_id else {}))
             self._log_call(
                 identity,
                 mode,
@@ -254,6 +303,7 @@ class ImageTaskService:
                 request_preview=request_text(payload.get("prompt")),
                 status="failed",
                 error=error_message,
+                account_email=account_email,
             )
 
     def _log_call(
@@ -268,6 +318,7 @@ class ImageTaskService:
         status: str = "success",
         error: str = "",
         urls: list[str] | None = None,
+        account_email: str = "",
     ) -> None:
         endpoint = "/v1/images/edits" if mode == "edit" else "/v1/images/generations"
         summary_prefix = "Edit ảnh" if mode == "edit" else "Tạo ảnh"
@@ -286,6 +337,8 @@ class ImageTaskService:
             detail["request_text"] = request_preview
         if error:
             detail["error"] = error
+        if account_email:
+            detail["account_email"] = account_email
         if urls:
             detail["urls"] = list(dict.fromkeys(urls))
         try:
@@ -300,6 +353,7 @@ class ImageTaskService:
                 return
             task.update(updates)
             task["updated_at"] = _now_iso()
+            task["updated_ts"] = time.time()
             self._save_locked()
 
     def _load_locked(self) -> dict[str, dict[str, Any]]:
@@ -330,12 +384,20 @@ class ImageTaskService:
                 "mode": "edit" if item.get("mode") == "edit" else "generate",
                 "model": _clean(item.get("model"), "gpt-image-2"),
                 "size": _clean(item.get("size")),
+                "quality": _clean(item.get("quality"), "auto"),
                 "created_at": _clean(item.get("created_at"), _now_iso()),
                 "updated_at": _clean(item.get("updated_at"), _clean(item.get("created_at"), _now_iso())),
+                "created_ts": item.get("created_ts"),
+                "updated_ts": item.get("updated_ts"),
+                "started_ts": item.get("started_ts"),
+                "duration_ms": item.get("duration_ms"),
             }
             data = item.get("data")
             if isinstance(data, list):
                 task["data"] = data
+            usage = item.get("usage")
+            if isinstance(usage, dict):
+                task["usage"] = usage
             error = _clean(item.get("error"))
             if error:
                 task["error"] = error
@@ -372,6 +434,118 @@ class ImageTaskService:
         for key in removed_keys:
             self._tasks.pop(key, None)
         return bool(removed_keys)
+
+    def resume_poll(
+        self,
+        identity: dict[str, object],
+        task_id: str,
+        extra_timeout_secs: float = 30.0,
+    ) -> dict[str, Any]:
+        """Tiếp tục thăm dò các tác vụ đã hết thời gian, chờ thêm extra_timeout_secs giây."""
+        owner = _owner_id(identity)
+        key = _task_key(owner, _clean(task_id))
+        with self._lock:
+            task = self._tasks.get(key)
+            if task is None:
+                raise ValueError("task not found")
+            if task.get("status") != TASK_STATUS_ERROR:
+                raise ValueError("task is not in error state")
+            error_msg = _clean(task.get("error"))
+            # Message timeout gốc từ openai_backend_api vẫn chứa "超时" — phải match cả 3 biến thể
+            if "超时" not in error_msg and "hết thời gian" not in error_msg and "timeout" not in error_msg.lower():
+                raise ValueError("task error is not a timeout error")
+            conversation_id = _clean(task.get("conversation_id"))
+            if not conversation_id:
+                raise ValueError("task has no conversation_id")
+            mode = task.get("mode", "generate")
+            model = task.get("model", "gpt-image-2")
+            # Đặt lại trạng thái tác vụ thành running
+            self._update_task(key, status=TASK_STATUS_RUNNING, error="")
+
+        # Khởi chạy luồng mới để tiếp tục thăm dò
+        thread = threading.Thread(
+            target=self._run_resume_poll,
+            args=(key, conversation_id, extra_timeout_secs, dict(identity), mode, model),
+            name=f"image-resume-{_clean(task_id)[:16]}",
+            daemon=True,
+        )
+        thread.start()
+        return _public_task(task)
+
+    def _run_resume_poll(
+        self,
+        key: str,
+        conversation_id: str,
+        extra_timeout_secs: float,
+        identity: dict[str, object],
+        mode: str,
+        model: str,
+    ) -> None:
+        """Luồng nền: Tiếp tục thăm dò kết quả hình ảnh có conversation_id."""
+        started = time.time()
+        backend = None
+        try:
+            from services.openai_backend_api import OpenAIBackendAPI
+            from services.protocol.conversation import format_image_result
+
+            backend = OpenAIBackendAPI(proxy_url=config.proxy_url or None)
+            file_ids, sediment_ids = backend._poll_image_results(
+                conversation_id,
+                extra_timeout_secs,
+            )
+            if not file_ids and not sediment_ids:
+                raise RuntimeError(
+                    f"Vẫn chưa tìm thấy kết quả hình ảnh sau khi chờ thêm {extra_timeout_secs} giây."
+                )
+
+            image_urls = backend.resolve_conversation_image_urls(
+                conversation_id, file_ids, sediment_ids, poll=False,
+            )
+            if not image_urls:
+                raise RuntimeError("Không thể giải quyết URL hình ảnh")
+
+            image_items = [
+                {"b64_json": __import__("base64").b64encode(image_data).decode("ascii")}
+                for image_data in backend.download_image_bytes(image_urls)
+            ]
+            # Lấy prompt gốc của tác vụ (được xác định từ mode của _public_task)
+            with self._lock:
+                task = self._tasks.get(key)
+                quality = _clean(task.get("quality"), "auto") if task else "auto"
+                size = _clean(task.get("size")) if task else None
+            data = format_image_result(
+                image_items,
+                "",  # prompt không còn quan trọng nữa, kết quả đã lấy được
+                "b64_json",
+                "",
+                int(time.time()),
+            )["data"]
+            self._update_task(key, status=TASK_STATUS_SUCCESS, data=data, error="", duration_ms=int((time.time() - started) * 1000))
+            self._log_call(
+                identity,
+                mode,
+                model,
+                started,
+                "Gọi hoàn thành (tiếp tục thăm dò)",
+                status="success",
+                urls=_collect_image_urls(data),
+            )
+        except Exception as exc:
+            error_message = str(exc) or "resume poll failed"
+            duration_ms = int((time.time() - started) * 1000)
+            self._update_task(key, status=TASK_STATUS_ERROR, error=error_message, data=[], duration_ms=duration_ms)
+            self._log_call(
+                identity,
+                mode,
+                model,
+                started,
+                "Gọi thất bại (tiếp tục thăm dò)",
+                status="failed",
+                error=error_message,
+            )
+        finally:
+            if backend is not None:
+                backend.close()
 
 
 image_task_service = ImageTaskService(DATA_DIR / "image_tasks.json")

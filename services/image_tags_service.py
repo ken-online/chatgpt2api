@@ -50,7 +50,7 @@ def remove_tags(image_rel: str) -> None:
 
 
 def delete_tag(tag: str) -> int:
-    """从所有图片中删除指定标签，返回受影响的图片数。"""
+    """Xóa thẻ được chỉ định khỏi tất cả hình ảnh, trả về số hình ảnh bị ảnh hưởng."""
     data = load_tags()
     count = 0
     for rel in list(data):

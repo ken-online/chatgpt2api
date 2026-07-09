@@ -44,6 +44,12 @@ export const ROUTE_META: Record<string, RouteMeta> = {
     adminSidebar: true,
     userAccessible: false,
   },
+  "/debug": {
+    title: "Debug",
+    description: "Kiểm thử chat, tìm kiếm, PPT/PSD và skill",
+    adminSidebar: true,
+    userAccessible: false,
+  },
   "/settings": {
     title: "Settings",
     description: "Cấu hình hệ thống và tích hợp",
@@ -65,6 +71,7 @@ export const SIDEBAR_ORDER = [
   "/image-manager",
   "/logs",
   "/register",
+  "/debug",
   "/settings",
 ] as const;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, LoaderCircle, PlugZap, Save, Settings2, Shield, Sparkles } from "lucide-react";
+import { Cloud, FileText, LoaderCircle, PlugZap, RefreshCw, Save, Settings2, Shield, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { ImageStorageMode } from "@/lib/api";
 import { testProxy, type ProxyTestResult } from "@/lib/api";
 
 import { useSettingsStore } from "../store";
@@ -185,6 +187,11 @@ export function AccountLogsCard() {
   const config = useSettingsStore((state) => state.config);
   const setAutoRemoveInvalidAccounts = useSettingsStore((state) => state.setAutoRemoveInvalidAccounts);
   const setAutoRemoveRateLimitedAccounts = useSettingsStore((state) => state.setAutoRemoveRateLimitedAccounts);
+  const setImageSettleEnabled = useSettingsStore((state) => state.setImageSettleEnabled);
+  const setImageRemoveConversationAfterResult = useSettingsStore((state) => state.setImageRemoveConversationAfterResult);
+  const setImageSettleSecs = useSettingsStore((state) => state.setImageSettleSecs);
+  const setImageTimeoutRetrySecs = useSettingsStore((state) => state.setImageTimeoutRetrySecs);
+  const setAutoReloginAfterRefresh = useSettingsStore((state) => state.setAutoReloginAfterRefresh);
   const setLogLevel = useSettingsStore((state) => state.setLogLevel);
 
   return (
@@ -214,6 +221,50 @@ export function AccountLogsCard() {
             />
             Tự động xóa tài khoản bị giới hạn tốc độ
           </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content transition hover:bg-surface-secondary/50">
+            <Checkbox
+              checked={Boolean(config?.auto_relogin_after_refresh)}
+              onCheckedChange={(checked) => setAutoReloginAfterRefresh(Boolean(checked))}
+            />
+            Tự động thử gỡ bỏ trạng thái bất thường sau khi làm mới
+          </label>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content transition hover:bg-surface-secondary/50">
+            <Checkbox
+              checked={Boolean(config?.image_settle_enabled !== false)}
+              onCheckedChange={(checked) => setImageSettleEnabled(Boolean(checked))}
+            />
+            Cơ chế xác nhận lần thứ hai hình ảnh
+          </label>
+          <p className="text-xs text-content-tertiary">Khi bật sẽ cải thiện nhẹ tỉ lệ thành công nhận hình ảnh.</p>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content transition hover:bg-surface-secondary/50">
+            <Checkbox
+              checked={Boolean(config?.image_remove_conversation_after_result)}
+              onCheckedChange={(checked) => setImageRemoveConversationAfterResult(Boolean(checked))}
+            />
+            Xóa cuộc trò chuyện cục bộ sau khi có hình ảnh
+          </label>
+          <p className="text-xs text-content-tertiary">Sau khi nhận được hình ảnh, ẩn bất đồng bộ bản ghi cuộc trò chuyện cục bộ tương ứng trên phía ChatGPT.</p>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm text-content">Thời gian chờ thêm hình ảnh timeout (giây)</label>
+          <Input
+            value={String(config?.image_timeout_retry_secs || "30")}
+            onChange={(e) => setImageTimeoutRetrySecs(e.target.value)}
+            placeholder="30"
+            className="h-10 rounded-xl border-border bg-surface"
+          />
+          <p className="text-xs text-content-tertiary">Đơn vị: giây, thời gian chờ bổ sung sau khi timeout khi nhấp vào "Tiếp tục chờ".</p>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm text-content">Thời gian chờ xác nhận lần thứ hai hình ảnh (giây)</label>
+          <Input
+            value={String(config?.image_settle_secs || "2.0")}
+            onChange={(e) => setImageSettleSecs(e.target.value)}
+            placeholder="2.0"
+            className="h-10 rounded-xl border-border bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!config?.image_settle_enabled}
+          />
+          <p className="text-xs text-content-tertiary">Đơn vị: giây, chờ bao lâu sau khi tìm thấy hình ảnh để xác nhận lần nữa. Cần sử dụng cùng với cơ chế xác nhận lần thứ hai hình ảnh.</p>
         </div>
         <div className="space-y-3 rounded-xl border border-border bg-surface px-4 py-3">
           <div>

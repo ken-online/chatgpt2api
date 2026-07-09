@@ -41,7 +41,7 @@ export default function DashboardPage() {
     return <div className="text-sm text-content-tertiary">Đang kiểm tra phiên...</div>;
   }
 
-  // Aggregations
+  // Tổng hợp
   const total = accounts.length;
   const active = accounts.filter((a) => a.status === "正常").length;
   const limited = accounts.filter((a) => a.status === "限流").length;

@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
-import { LoaderCircle, MessageSquarePlus, Search, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { LoaderCircle, MessageSquarePlus, Pencil, Search, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ type ImageSidebarProps = {
   onClearHistory: () => void | Promise<void>;
   onSelectConversation: (id: string) => void;
   onDeleteConversation: (id: string) => void | Promise<void>;
+  onRenameConversation: (id: string, title: string) => void | Promise<void>;
   formatConversationTime: (value: string) => string;
   hideActionButtons?: boolean;
 };
@@ -27,16 +28,50 @@ export function ImageSidebar({
   onClearHistory,
   onSelectConversation,
   onDeleteConversation,
+  onRenameConversation,
   formatConversationTime,
   hideActionButtons = false,
 }: ImageSidebarProps) {
+  // Search state (from local)
   const [query, setQuery] = useState("");
+
+  // Rename state (from upstream)
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = query.trim()
     ? conversations.filter((c) =>
         c.title.toLowerCase().includes(query.trim().toLowerCase()),
       )
     : conversations;
+
+  useEffect(() => {
+    if (editingId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingId]);
+
+  const startRename = useCallback((conversation: ImageConversation, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(conversation.id);
+    setEditingTitle(conversation.title);
+  }, []);
+
+  const commitRename = useCallback(() => {
+    const trimmed = editingTitle.trim();
+    if (editingId && trimmed) {
+      void onRenameConversation(editingId, trimmed);
+    }
+    setEditingId(null);
+    setEditingTitle("");
+  }, [editingId, editingTitle, onRenameConversation]);
+
+  const cancelRename = useCallback(() => {
+    setEditingId(null);
+    setEditingTitle("");
+  }, []);
 
   return (
     <aside className="h-full min-h-0 overflow-hidden">
@@ -126,16 +161,25 @@ export function ImageSidebar({
                   <button
                     type="button"
                     onClick={() => onSelectConversation(conversation.id)}
-                    className={cn("block w-full pr-8 text-left")}
+                    className="block w-full pr-8 text-left"
                   >
-                    <div
-                      className={cn(
-                        "line-clamp-2 break-words font-semibold",
-                        hideActionButtons ? "text-base" : "text-sm",
-                        active || isProcessing ? "text-content" : "text-content",
+                    <div className={cn("line-clamp-2 break-words font-semibold", hideActionButtons ? "text-base" : "text-sm")}>
+                      {editingId === conversation.id ? (
+                        <input
+                          ref={editInputRef}
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onBlur={commitRename}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") commitRename();
+                            if (e.key === "Escape") cancelRename();
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full rounded border border-stone-300 bg-white px-1 py-0.5 text-sm outline-none focus:border-stone-500"
+                        />
+                      ) : (
+                        <span className="truncate">{conversation.title}</span>
                       )}
-                    >
-                      {conversation.title}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-content-tertiary">
                       <span>{conversation.turns.length} lần · {formatConversationTime(conversation.updatedAt)}</span>
@@ -151,14 +195,24 @@ export function ImageSidebar({
                       ) : null}
                     </div>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void onDeleteConversation(conversation.id)}
-                    className="absolute top-3 right-2 inline-flex size-7 items-center justify-center rounded-md text-content-tertiary opacity-0 transition hover:bg-surface-secondary hover:text-rose-500 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-                    aria-label="Xoá cuộc trò chuyện"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  <div className="absolute top-2.5 right-1.5 flex items-center gap-0.5 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={(e) => startRename(conversation, e)}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-content-tertiary hover:bg-surface-secondary hover:text-content"
+                      aria-label="Đổi tên cuộc trò chuyện"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onDeleteConversation(conversation.id)}
+                      className="inline-flex size-7 items-center justify-center rounded-md text-content-tertiary hover:bg-surface-secondary hover:text-rose-500"
+                      aria-label="Xoá cuộc trò chuyện"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                 </div>
               );
             })
