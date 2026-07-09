@@ -148,6 +148,9 @@ export function RegisterEmailCard() {
   if (!config) return null;
 
   const providers = config.mail.providers || [];
+  const visibleProviders = providers.length > 0
+    ? providers
+    : [{ enable: true, type: "tempmail_lol", api_key: "", domain: [] }];
 
   const updateProviderType = (index: number, type: string) => {
     updateProvider(index, {
@@ -155,7 +158,7 @@ export function RegisterEmailCard() {
       enable: true,
       ...(type === "cloudflare_temp_email" ? { api_base: "", admin_password: "", domain: [] } : {}),
       ...(type === "tempmail_lol" ? { api_key: "", domain: [] } : {}),
-      ...(type === "moemail" ? { api_base: "", api_key: "", domain: [] } : {}),
+      ...(type === "moemail" ? { api_base: "", api_key: "", domain: [], expiry_time: 0 } : {}),
       ...(type === "inbucket" ? { api_base: "", domain: [], random_subdomain: true } : {}),
       ...(type === "duckmail" ? { api_key: "", default_domain: "duckmail.sbs" } : {}),
       ...(type === "gptmail" ? { api_key: "", default_domain: "" } : {}),
@@ -216,11 +219,21 @@ export function RegisterEmailCard() {
               disabled={config.enabled}
             />
           </div>
+          <div className="space-y-2 md:col-span-3">
+            <label className="text-sm text-content">User-Agent Email</label>
+            <Input
+              value={String(config.mail.user_agent || "")}
+              onChange={(e) => setMailField("user_agent", e.target.value)}
+              placeholder="Mozilla/5.0"
+              className="h-10 rounded-xl border-border bg-surface"
+              disabled={config.enabled}
+            />
+          </div>
         </div>
 
         {/* Providers */}
         <div className="space-y-4">
-          {providers.map((provider, index) => {
+          {visibleProviders.map((provider, index) => {
             const type = String(provider.type || "tempmail_lol");
             const domains = Array.isArray(provider.domain) ? provider.domain.map(String).join("\n") : "";
             return (
@@ -274,6 +287,12 @@ export function RegisterEmailCard() {
                     <div className="space-y-2">
                       <label className="text-sm text-content">Mật khẩu Admin</label>
                       <Input value={String(provider.admin_password || "")} onChange={(e) => updateProvider(index, { admin_password: e.target.value })} className="h-10 rounded-xl border-border bg-surface" disabled={config.enabled} />
+                    </div>
+                  )}
+                  {type === "moemail" && (
+                    <div className="space-y-2">
+                      <label className="text-sm text-content">Thời gian hết hạn (s)</label>
+                      <Input value={String(provider.expiry_time || "")} onChange={(e) => updateProvider(index, { expiry_time: e.target.value })} className="h-10 rounded-xl border-border bg-surface" disabled={config.enabled} />
                     </div>
                   )}
                   {(type === "tempmail_lol" || type === "moemail" || type === "duckmail" || type === "gptmail" || type === "yyds_mail") && (

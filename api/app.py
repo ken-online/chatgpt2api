@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel as PydanticBaseModel
 
-from api import accounts, ai, image_tasks, register, remove_background, system
+from api import accounts, ai, image_tasks, image_tools, register, remove_background, system
 from api.support import resolve_web_asset, start_limited_account_watcher
 from services.backup_service import backup_service
 from services.config import config
@@ -48,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(ai.create_router())
     app.include_router(accounts.create_router())
     app.include_router(image_tasks.create_router())
+    app.include_router(image_tools.create_router())
     app.include_router(register.create_router())
     app.include_router(remove_background.create_router())
     app.include_router(system.create_router(app_version))

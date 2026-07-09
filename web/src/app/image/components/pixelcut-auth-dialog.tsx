@@ -17,24 +17,27 @@ const PIXELCUT_URL = "https://www.pixelcut.ai/ai-image-editor?tool=removeBackgro
 
 export const PIXELCUT_TOKEN_KEY = "chatgpt2api:pixelcut_id_token";
 export const PIXELCUT_ORG_KEY = "chatgpt2api:pixelcut_org_id";
+export const PIXELCUT_REFRESH_KEY = "chatgpt2api:pixelcut_refresh_token";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAuthSaved: (idToken: string, orgId: string) => void;
+  onAuthSaved: (idToken: string, orgId: string, refreshToken: string) => void;
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function parseInput(raw: string): { idToken: string; orgId: string } {
+function parseInput(raw: string): { idToken: string; orgId: string; refreshToken: string } {
   const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   let idToken = "";
   let orgId = "";
+  let refreshToken = "";
   for (const line of lines) {
     if (!idToken && line.startsWith("eyJ")) idToken = line;
     else if (!orgId && UUID_PATTERN.test(line)) orgId = line;
+    else if (!refreshToken && line.length > 10) refreshToken = line;
   }
-  return { idToken, orgId };
+  return { idToken, orgId, refreshToken };
 }
 
 export function PixelcutAuthDialog({ open, onOpenChange, onAuthSaved }: Props) {
@@ -42,17 +45,19 @@ export function PixelcutAuthDialog({ open, onOpenChange, onAuthSaved }: Props) {
     if (typeof window === "undefined") return "";
     const token = localStorage.getItem(PIXELCUT_TOKEN_KEY) ?? "";
     const org = localStorage.getItem(PIXELCUT_ORG_KEY) ?? "";
-    return [token, org].filter(Boolean).join("\n");
+    const refresh = localStorage.getItem(PIXELCUT_REFRESH_KEY) ?? "";
+    return [token, org, refresh].filter(Boolean).join("\n");
   });
 
-  const { idToken, orgId } = parseInput(raw);
+  const { idToken, orgId, refreshToken } = parseInput(raw);
   const canSave = idToken.length > 0 && orgId.length > 0;
 
   const handleSave = () => {
     if (!idToken || !orgId) return;
     localStorage.setItem(PIXELCUT_TOKEN_KEY, idToken);
     localStorage.setItem(PIXELCUT_ORG_KEY, orgId);
-    onAuthSaved(idToken, orgId);
+    if (refreshToken) localStorage.setItem(PIXELCUT_REFRESH_KEY, refreshToken);
+    onAuthSaved(idToken, orgId, refreshToken);
     onOpenChange(false);
   };
 
@@ -62,29 +67,29 @@ export function PixelcutAuthDialog({ open, onOpenChange, onAuthSaved }: Props) {
         <DialogHeader className="gap-1.5">
           <DialogTitle>Cấu hình Pixelcut Auth</DialogTitle>
           <DialogDescription className="text-sm leading-5">
-            Mở DevTools (F12) → Console tại{" "}
+            Dùng userscript{" "}
+            <strong className="text-content">Pixelcut Auth Copier</strong>
+            {" "}→ click nút <strong>Copy Auth</strong> tại{" "}
             <a href={PIXELCUT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-content">
               pixelcut.ai
             </a>
-            , chạy 2 lệnh dưới rồi paste kết quả vào ô bên dưới.
+            {" "}rồi paste vào ô bên dưới (3 dòng: token, org ID, refresh token).
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 py-1">
           <div className="rounded-lg border border-border bg-surface-secondary px-3 py-2.5 text-[11px] font-mono leading-5 text-content-secondary">
-            <p className="mb-1 text-content-tertiary">{"// ID Token (~1h):"}</p>
-            <p className="select-all break-all">(await (await import('/assets/index-BPx7Hk69.js')).auth.currentUser.getIdToken())</p>
-            <p className="mt-2 mb-1 text-content-tertiary">{"// Org ID:"}</p>
+            <p className="mb-1 text-content-tertiary">{"// Nếu chưa có userscript, chạy lệnh trong DevTools Console:"}</p>
             <p className="select-all break-all">{"Object.values(JSON.parse(localStorage.getItem('pixa-wks-store')).state.orgIdsByUser)[0]"}</p>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-content">Paste 2 dòng token vào đây</label>
+            <label className="text-xs font-medium text-content">Paste token vào đây (3 dòng từ userscript)</label>
             <textarea
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
-              placeholder={"eyJhbGciOiJSUzI1Ni...\n171ad7c6-392f-48d2-a014-27483fe677bd"}
-              rows={4}
+              placeholder={"eyJhbGciOiJSUzI1Ni...\n171ad7c6-392f-48d2-a014-27483fe677bd\nAMf-vBy..."}
+              rows={5}
               className="w-full resize-none rounded-lg border border-border bg-surface px-3 py-2 text-xs font-mono text-content placeholder:text-content-tertiary focus:outline-none focus:ring-2 focus:ring-primary-600/30"
             />
           </div>
@@ -105,6 +110,14 @@ export function PixelcutAuthDialog({ open, onOpenChange, onAuthSaved }: Props) {
                 </span>
                 <span className="text-content-tertiary">
                   {orgId ? `Org ID: ${orgId}` : "Chưa tìm thấy Org ID (dạng UUID)"}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <span className={refreshToken ? "text-emerald-500" : "text-amber-500"}>
+                  {refreshToken ? "✓" : "○"}
+                </span>
+                <span className="text-content-tertiary truncate">
+                  {refreshToken ? `Refresh Token: ${refreshToken.slice(0, 20)}…` : "Không có Refresh Token (tùy chọn, khuyến nghị)"}
                 </span>
               </div>
             </div>

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock3, Download, LoaderCircle, Plus, RotateCcw, Scissors, Sparkles, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, LoaderCircle, Plus, RotateCcw, Scissors, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { removeBackground } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { ImageConversation, ImageTurnStatus, StoredImage, StoredReferenceImage } from "@/store/image-conversations";
-import { PixelcutAuthDialog, PIXELCUT_ORG_KEY, PIXELCUT_TOKEN_KEY } from "./pixelcut-auth-dialog";
+import { PixelcutAuthDialog, PIXELCUT_ORG_KEY, PIXELCUT_REFRESH_KEY, PIXELCUT_TOKEN_KEY } from "./pixelcut-auth-dialog";
 
 export type ImageLightboxItem = {
   id: string;
@@ -92,15 +92,25 @@ export function ImageResults({
       } else {
         source = { type: "url", url: imageSrc };
       }
-      const result = await removeBackground(source, idToken, orgId);
+      const refreshToken = localStorage.getItem(PIXELCUT_REFRESH_KEY) ?? undefined;
+      const result = await removeBackground(source, idToken, orgId, refreshToken);
+
+      // Lưu token mới nếu backend đã tự refresh
+      if (result.new_id_token) {
+        localStorage.setItem(PIXELCUT_TOKEN_KEY, result.new_id_token);
+      }
+      if (result.new_refresh_token) {
+        localStorage.setItem(PIXELCUT_REFRESH_KEY, result.new_refresh_token);
+      }
+
       const dataUrl = `data:image/png;base64,${result.b64_json}`;
       onRemoveBgResultProp(imageId, dataUrl, result.image_url, conversationId, turnId);
     } catch (error) {
       if (error instanceof Error && error.message === "PIXELCUT_AUTH_EXPIRED") {
         localStorage.removeItem(PIXELCUT_TOKEN_KEY);
         localStorage.removeItem(PIXELCUT_ORG_KEY);
+        localStorage.removeItem(PIXELCUT_REFRESH_KEY);
         toast.error("Token Pixelcut hết hạn, vui lòng lấy token mới");
-        window.open("https://www.pixelcut.ai/ai-image-editor?tool=removeBackground", "_blank", "noopener,noreferrer");
         setPendingRemoveBg({ id: imageId, src: imageSrc, conversationId, turnId });
         setShowPixelcutAuth(true);
       } else {
@@ -126,7 +136,7 @@ export function ImageResults({
     await doRemoveBg(imageId, imageSrc, idToken, orgId, conversationId, turnId);
   };
 
-  const handlePixelcutAuthSaved = async (idToken: string, orgId: string) => {
+  const handlePixelcutAuthSaved = async (idToken: string, orgId: string, refreshToken: string) => {
     const pending = pendingRemoveBg;
     setPendingRemoveBg(null);
     if (pending) {
@@ -482,9 +492,7 @@ export function ImageResults({
                         <div key={image.id} className="relative inline-block w-full overflow-hidden rounded-xl">
                           <img src={prevSrc} alt="" className="block h-auto w-full select-none" draggable={false} />
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="rounded-full bg-black/60 p-3 shadow-lg backdrop-blur-sm">
-                              <LoaderCircle className="size-5 animate-spin text-white" />
-                            </div>
+                            <img src="/loading-snail.png" alt="Đang tạo ảnh..." className="w-32 drop-shadow-lg" draggable={false} />
                           </div>
                         </div>,
                       ];
@@ -494,15 +502,11 @@ export function ImageResults({
                       <div
                         key={image.id}
                         className={cn(
-                          "flex w-full items-center justify-center overflow-hidden rounded-xl bg-surface-secondary text-content-tertiary",
+                          "flex w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-xl bg-surface-secondary text-content-tertiary",
                           placeholderAspect,
                         )}
                       >
-                        {turn.status === "queued" ? (
-                          <Clock3 className="size-5" />
-                        ) : (
-                          <LoaderCircle className="size-5 animate-spin" />
-                        )}
+                        <img src="/loading-snail.png" alt="Đang tạo ảnh..." className="w-28 drop-shadow" draggable={false} />
                       </div>,
                     ];
                   })}
@@ -567,7 +571,7 @@ export function ImageResults({
       <PixelcutAuthDialog
         open={showPixelcutAuth}
         onOpenChange={setShowPixelcutAuth}
-        onAuthSaved={(idToken, orgId) => void handlePixelcutAuthSaved(idToken, orgId)}
+        onAuthSaved={(idToken, orgId, refreshToken) => void handlePixelcutAuthSaved(idToken, orgId, refreshToken)}
       />
     </div>
   );

@@ -10,6 +10,7 @@ from services.log_service import LoggedCall
 from services.protocol import (
     anthropic_v1_messages,
     openai_v1_chat_complete,
+    openai_v1_image_compose,
     openai_v1_image_edit,
     openai_v1_image_generations,
     openai_v1_models,
@@ -124,6 +125,45 @@ def create_router() -> APIRouter:
             "base_url": resolve_image_base_url(request),
         }
         return await call.run(openai_v1_image_edit.handle, payload)
+
+    @router.post("/v1/images/compose")
+    async def compose_images(
+            request: Request,
+            authorization: str | None = Header(default=None),
+            image: list[UploadFile] | None = File(default=None),
+            image_list: list[UploadFile] | None = File(default=None, alias="image[]"),
+            prompt: str | None = Form(default=None),
+            model: str = Form(default="gpt-image-2"),
+            n: int = Form(default=1),
+            size: str | None = Form(default=None),
+            response_format: str = Form(default="b64_json"),
+            stream: bool | None = Form(default=None),
+    ):
+        identity = require_identity(authorization)
+        call = LoggedCall(identity, "/v1/images/compose", model, "Ghép ảnh", request_text=prompt or "")
+        if n < 1 or n > 4:
+            raise HTTPException(status_code=400, detail={"error": "n must be between 1 and 4"})
+        await filter_or_log(call, prompt or "")
+        uploads = [*(image or []), *(image_list or [])]
+        if len(uploads) < 2:
+            raise HTTPException(status_code=400, detail={"error": "at least 2 images are required for composing"})
+        images: list[tuple[bytes, str, str]] = []
+        for upload in uploads:
+            image_data = await upload.read()
+            if not image_data:
+                raise HTTPException(status_code=400, detail={"error": "image file is empty"})
+            images.append((image_data, upload.filename or "image.png", upload.content_type or "image/png"))
+        payload = {
+            "prompt": prompt,
+            "images": images,
+            "model": model,
+            "n": n,
+            "size": size,
+            "response_format": response_format,
+            "stream": stream,
+            "base_url": resolve_image_base_url(request),
+        }
+        return await call.run(openai_v1_image_compose.handle, payload)
 
     @router.post("/v1/chat/completions")
     async def create_chat_completion(body: ChatCompletionRequest, authorization: str | None = Header(default=None)):

@@ -21,7 +21,7 @@ export const ROUTE_META: Record<string, RouteMeta> = {
     userAccessible: false,
   },
   "/image": {
-    title: "Image",
+    title: "Image Generators",
     description: "Tạo ảnh với gpt-image-2",
     adminSidebar: true,
     userAccessible: true,

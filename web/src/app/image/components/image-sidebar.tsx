@@ -1,6 +1,7 @@
 "use client";
 
-import { LoaderCircle, MessageSquarePlus, Trash2 } from "lucide-react";
+import { LoaderCircle, MessageSquarePlus, Search, Trash2, X } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,14 @@ export function ImageSidebar({
   formatConversationTime,
   hideActionButtons = false,
 }: ImageSidebarProps) {
+  const [query, setQuery] = useState("");
+
+  const filtered = query.trim()
+    ? conversations.filter((c) =>
+        c.title.toLowerCase().includes(query.trim().toLowerCase()),
+      )
+    : conversations;
+
   return (
     <aside className="h-full min-h-0 overflow-hidden">
       <div className="flex h-full min-h-0 flex-col gap-2 py-1 sm:gap-3 sm:py-2">
@@ -49,10 +58,34 @@ export function ImageSidebar({
           </div>
         )}
 
+        {/* Ô tìm kiếm */}
+        {!isLoadingHistory && conversations.length > 0 && (
+          <div className="relative px-0.5">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-content-tertiary" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Tìm kiếm..."
+              className="h-8 w-full rounded-lg border border-border bg-surface/70 pl-8 pr-7 text-xs text-content placeholder:text-content-tertiary focus:outline-none focus:ring-1 focus:ring-primary-500/50"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-content-tertiary hover:text-content"
+                aria-label="Xóa tìm kiếm"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto flex flex-col gap-1 [scrollbar-color:rgba(120,113,108,.45)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-400/45 [&::-webkit-scrollbar-track]:bg-transparent",
-            hideActionButtons ? "pr-0" : "pr-1",
+            "min-h-0 flex-1 overflow-y-auto flex flex-col gap-1 px-0.5 [scrollbar-color:rgba(120,113,108,.45)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-stone-400/45 [&::-webkit-scrollbar-track]:bg-transparent",
+            hideActionButtons ? "pr-0.5" : "pr-1",
           )}
         >
           {isLoadingHistory ? (
@@ -62,8 +95,12 @@ export function ImageSidebar({
             </div>
           ) : conversations.length === 0 ? (
             <div className="px-2 py-3 text-sm leading-6 text-content-tertiary">Chưa có bản ghi ảnh nào, sẽ hiển thị ở đây sau khi nhập dấu nhắc.</div>
+          ) : filtered.length === 0 ? (
+            <div className="px-2 py-3 text-sm leading-6 text-content-tertiary">
+              Không tìm thấy cuộc trò chuyện nào khớp với &ldquo;{query}&rdquo;.
+            </div>
           ) : (
-            conversations.map((conversation) => {
+            filtered.map((conversation) => {
               const active = conversation.id === selectedConversationId;
               const stats = getImageConversationStats(conversation);
               const isRunning = stats.running > 0;
@@ -89,7 +126,7 @@ export function ImageSidebar({
                   <button
                     type="button"
                     onClick={() => onSelectConversation(conversation.id)}
-                    className={cn("block w-full text-left", hideActionButtons ? "pr-0" : "pr-8")}
+                    className={cn("block w-full pr-8 text-left")}
                   >
                     <div
                       className={cn(
@@ -114,16 +151,14 @@ export function ImageSidebar({
                       ) : null}
                     </div>
                   </button>
-                  {!hideActionButtons ? (
-                    <button
-                      type="button"
-                      onClick={() => void onDeleteConversation(conversation.id)}
-                      className="absolute top-3 right-2 inline-flex size-7 items-center justify-center rounded-md text-content-tertiary opacity-0 transition hover:bg-surface-secondary hover:text-rose-500 group-hover:opacity-100"
-                      aria-label="Xoá cuộc trò chuyện"
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void onDeleteConversation(conversation.id)}
+                    className="absolute top-3 right-2 inline-flex size-7 items-center justify-center rounded-md text-content-tertiary opacity-0 transition hover:bg-surface-secondary hover:text-rose-500 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                    aria-label="Xoá cuộc trò chuyện"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
               );
             })

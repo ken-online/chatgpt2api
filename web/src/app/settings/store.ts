@@ -125,6 +125,21 @@ function normalizeFiles(items: CPARemoteFile[]) {
   return files;
 }
 
+const DEFAULT_REGISTER_PROVIDER = { enable: true, type: "tempmail_lol", api_key: "", domain: [] };
+
+function normalizeRegisterConfig(config: RegisterConfig): RegisterConfig {
+  const providers = Array.isArray(config.mail?.providers) && config.mail.providers.length > 0
+    ? config.mail.providers
+    : [{ ...DEFAULT_REGISTER_PROVIDER }];
+  return {
+    ...config,
+    mail: {
+      ...config.mail,
+      providers,
+    },
+  };
+}
+
 type SettingsStore = {
   config: SettingsConfig | null;
   isLoadingConfig: boolean;
@@ -193,7 +208,7 @@ type SettingsStore = {
   setRegisterTargetQuota: (value: string) => void;
   setRegisterTargetAvailable: (value: string) => void;
   setRegisterCheckInterval: (value: string) => void;
-  setRegisterMailField: (key: "request_timeout" | "wait_timeout" | "wait_interval", value: string) => void;
+  setRegisterMailField: (key: "request_timeout" | "wait_timeout" | "wait_interval" | "user_agent", value: string) => void;
   addRegisterProvider: () => void;
   updateRegisterProvider: (index: number, updates: Record<string, unknown>) => void;
   deleteRegisterProvider: (index: number) => void;
@@ -534,7 +549,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     if (!silent) set({ isLoadingRegister: true });
     try {
       const data = await fetchRegisterConfig();
-      set({ registerConfig: data.register });
+      set({ registerConfig: normalizeRegisterConfig(data.register) });
     } catch (error) {
       if (!silent) toast.error(error instanceof Error ? error.message : "Tải cấu hình đăng ký thất bại");
     } finally {
@@ -543,7 +558,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   },
 
   setRegisterConfig: (config) => {
-    set({ registerConfig: config, isLoadingRegister: false });
+    set({ registerConfig: normalizeRegisterConfig(config), isLoadingRegister: false });
   },
 
   setRegisterProxy: (value) => {
@@ -578,7 +593,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     set((state) => state.registerConfig ? {
       registerConfig: {
         ...state.registerConfig,
-        mail: { ...state.registerConfig.mail, [key]: Number(value) || 0 },
+        mail: {
+          ...state.registerConfig.mail,
+          [key]: key === "user_agent" ? value : Number(value) || 0,
+        },
       },
     } : {});
   },
@@ -591,7 +609,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
           ...state.registerConfig.mail,
           providers: [
             ...(state.registerConfig.mail.providers || []),
-            { enable: true, type: "tempmail_lol", api_key: "", domain: [] },
+            { ...DEFAULT_REGISTER_PROVIDER },
           ],
         },
       },
@@ -625,7 +643,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       set({ isSavingRegister: true });
       const data = await updateRegisterConfig({
-        mail: registerConfig.mail,
+        mail: normalizeRegisterConfig(registerConfig).mail,
         proxy: registerConfig.proxy.trim(),
         total: Math.max(1, Number(registerConfig.total) || 1),
         threads: Math.max(1, Number(registerConfig.threads) || 1),
@@ -634,7 +652,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         target_available: Math.max(1, Number(registerConfig.target_available) || 1),
         check_interval: Math.max(1, Number(registerConfig.check_interval) || 5),
       });
-      set({ registerConfig: data.register });
+      set({ registerConfig: normalizeRegisterConfig(data.register) });
       toast.success("Cấu hình đăng ký đã lưu");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Lưu cấu hình đăng ký thất bại");
@@ -650,7 +668,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     try {
       if (!registerConfig.enabled) {
         await updateRegisterConfig({
-          mail: registerConfig.mail,
+          mail: normalizeRegisterConfig(registerConfig).mail,
           proxy: registerConfig.proxy.trim(),
           total: Math.max(1, Number(registerConfig.total) || 1),
           threads: Math.max(1, Number(registerConfig.threads) || 1),
@@ -661,7 +679,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         });
       }
       const data = registerConfig.enabled ? await stopRegister() : await startRegister();
-      set({ registerConfig: data.register });
+      set({ registerConfig: normalizeRegisterConfig(data.register) });
       toast.success(registerConfig.enabled ? "Nhiệm vụ đăng ký đã dừng" : "Nhiệm vụ đăng ký đã khởi động");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Chuyển đổi trạng thái đăng ký thất bại");
@@ -674,7 +692,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     set({ isSavingRegister: true });
     try {
       const data = await resetRegisterApi();
-      set({ registerConfig: data.register });
+      set({ registerConfig: normalizeRegisterConfig(data.register) });
       toast.success("Thống kê đăng ký đã đặt lại");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Đặt lại thống kê đăng ký thất bại");

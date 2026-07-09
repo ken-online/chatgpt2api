@@ -1,7 +1,7 @@
 {
   "auth-key": "Namhoang88!",
   "refresh_account_interval_minute": 60,
-  "image_retention_days": 15,
+  "image_retention_days": 999,
   "image_poll_timeout_secs": 120,
   "auto_remove_rate_limited_accounts": false,
   "auto_remove_invalid_accounts": true,
@@ -46,5 +46,10 @@
       "images": false
     }
   },
-  "image_account_concurrency": 3
+  "image_account_concurrency": 3,
+  "pixelcut": {
+    "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ijg2OGU0YWNlMGI2NTE2ZDM2YjlmNTZkZThjZTQ5Nzg4ZmNjZGFjNDMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiVGluYSBDdXRlIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0liTHFQUDY0Si0xb3BCSWFjVGdsc2w2WEFRZHZlVGpvMzZEUDZ3RVRzYjZHbFpuc1M5PXM5Ni1jIiwiaXNzIjoiaHR0cHM6Ly9zZWN1cmV0b2tlbi5nb29nbGUuY29tL3BpeGVscy1nb2xkIiwiYXVkIjoicGl4ZWxzLWdvbGQiLCJhdXRoX3RpbWUiOjE3NjUxMjM4NTUsInVzZXJfaWQiOiJkTEpJMlhNTHJkY1FMNGEzN0RVRDd0aWhaRm8yIiwic3ViIjoiZExKSTJYTUxyZGNRTDRhMzdEVUQ3dGloWkZvMiIsImlhdCI6MTc3ODM1NzU1MSwiZXhwIjoxNzc4MzYxMTUxLCJlbWFpbCI6InRpbmEuc29jdXRlNjlAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZ29vZ2xlLmNvbSI6WyIxMDU3OTIyMDYxMDE1NTk1NjkwMDYiXSwiZW1haWwiOlsidGluYS5zb2N1dGU2OUBnbWFpbC5jb20iXX0sInNpZ25faW5fcHJvdmlkZXIiOiJnb29nbGUuY29tIn19.f9hnjZyOBmZ2VtW74zZ0NdQvc-bdaizpRFd7OaBSBt0nTnjRZAKkPN5I7gdDVIHDpPD9Wv8xdaffYQyIaqGhUaFmVCF6-8Gq7s7dgIB1MLJnkm_p1blA-iTZmB_SlcZkFPWnUmWx4FqGivUaEEGg6TPl3iTzNOW7gfj-uBSVevfMWCFMTklWdQliB8d_AzH7tS9kBa4ZEaa8i7-ayzzIu14A7r2MxJsbFEmgx1KPGartXFyG0cUbbkeKpcDoBWIEx0SjJv7U--X4x_Jt2UB0fBNU1YyqdF6aUTaAjtR8ksc32RbxDQoFPp5J5G3Zwr6_w3xRb7Sq3qaaf5zp7avxWA",
+    "org_id": "171ad7c6-392f-48d2-a014-27483fe677bd",
+    "refresh_token": "AMf-vBzPQMmuhzuP5-S_Ngn9puL63RcdeJwUKq-IdLc5pcgUYygzAiGFNjXxXLeLm1TYkYgvUgEOWNLkJwur7FF4tni_GsddIJ8QtSA6Uw-Rmv_D9ViODNi3empDeU1LnUpwbzcQfxjGv3L-ceooxlLopleK_xFkAcD7gamyT3A2LByEEntG3P4L9muQYZ6NxD6LxplELp-pau5qJtHqVTNRG73ZSXLikoLEcxOjceuPiNzacyQFV-SQ2-RkGBy1F3R5rGReW7OJ353c3Vfi2ojawbZkeBxgUxb5Qj_G9Q9dz1814v8FxwoPZrDqXZKrAFa6bVIPreCGJtVT7D5DOHT_kOHEJlZAlQAJlCUOHDyd6lUVMVQCSBi-2FGKOD0q1iXGeFv1XpvPB9_8X2eQGWEfEN5Nmr0j_k7DKXr4BHhlm-fwTIt8KPU"
+  }
 }

@@ -8,7 +8,7 @@ echo ================================================
 echo.
 
 echo [1/3] Dừng và xóa container cũ...
-docker compose -f docker-compose.local.yml down
+docker compose down
 if %errorlevel% neq 0 (
     echo LỖI: Không thể dừng container!
     pause
@@ -17,7 +17,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [2/3] Build lại image...
-docker compose -f docker-compose.local.yml build
+docker compose build
 if %errorlevel% neq 0 (
     echo LỖI: Build thất bại!
     pause
@@ -26,7 +26,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [3/3] Khởi động container mới...
-docker compose -f docker-compose.local.yml up -d
+docker compose up -d
 if %errorlevel% neq 0 (
     echo LỖI: Không thể khởi động container!
     pause

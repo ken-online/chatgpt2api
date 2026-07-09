@@ -206,6 +206,7 @@ export type RegisterConfig = {
     request_timeout: number;
     wait_timeout: number;
     wait_interval: number;
+    user_agent?: string;
     providers: Array<Record<string, unknown>>;
   };
   proxy: string;
@@ -730,13 +731,24 @@ export async function removeBackground(
   source: { type: "b64"; b64: string; mime: string } | { type: "url"; url: string },
   idToken: string,
   orgId: string,
+  refreshToken?: string,
 ) {
   const imageFields =
     source.type === "b64"
       ? { image_b64: source.b64, image_mime: source.mime }
       : { image_url: source.url };
-  return httpRequest<{ b64_json: string; image_url: string }>("/api/remove-background", {
+  return httpRequest<{
+    b64_json: string;
+    image_url: string;
+    new_id_token?: string | null;
+    new_refresh_token?: string | null;
+  }>("/api/remove-background", {
     method: "POST",
-    body: { ...imageFields, id_token: idToken, org_id: orgId },
+    body: {
+      ...imageFields,
+      id_token: idToken,
+      org_id: orgId,
+      ...(refreshToken ? { refresh_token: refreshToken } : {}),
+    },
   });
 }

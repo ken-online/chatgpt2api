@@ -257,6 +257,27 @@ class ConfigStore:
         return removed
 
     @property
+    def pixelcut(self) -> dict[str, str]:
+        value = self.data.get("pixelcut")
+        if not isinstance(value, dict):
+            return {"id_token": "", "org_id": "", "refresh_token": ""}
+        return {
+            "id_token": str(value.get("id_token") or "").strip(),
+            "org_id": str(value.get("org_id") or "").strip(),
+            "refresh_token": str(value.get("refresh_token") or "").strip(),
+        }
+
+    def update_pixelcut(self, id_token: str, org_id: str, refresh_token: str) -> None:
+        data = dict(self.data)
+        data["pixelcut"] = {
+            "id_token": id_token.strip(),
+            "org_id": org_id.strip(),
+            "refresh_token": refresh_token.strip(),
+        }
+        self.data = data
+        self._save()
+
+    @property
     def base_url(self) -> str:
         return str(
             os.getenv("CHATGPT2API_BASE_URL")
