@@ -15,6 +15,8 @@ services:
     environment:
       STORAGE_BACKEND: sqlite
       DATABASE_URL: sqlite:////app/data/accounts.db
+      # Bắt buộc — đặt trong file .env cạnh file này (xem .env.example), config.json không chứa key
+      CHATGPT2API_AUTH_KEY: ${CHATGPT2API_AUTH_KEY:?Chưa đặt CHATGPT2API_AUTH_KEY trong file .env}
     healthcheck:
       # Dùng python urllib vì image base không có curl/wget
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:80/',timeout=5).status<500 else 1)"]
