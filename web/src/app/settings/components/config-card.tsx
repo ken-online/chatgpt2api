@@ -23,6 +23,8 @@ export function SystemSettingsCard() {
   const setImagePollTimeoutSecs = useSettingsStore((state) => state.setImagePollTimeoutSecs);
   const setImageAccountConcurrency = useSettingsStore((state) => state.setImageAccountConcurrency);
   const setBaseUrl = useSettingsStore((state) => state.setBaseUrl);
+  const setDefaultUpstreamModelName = useSettingsStore((state) => state.setDefaultUpstreamModelName);
+  const setDefaultThinkingEffort = useSettingsStore((state) => state.setDefaultThinkingEffort);
 
   if (isLoadingConfig) {
     return (
@@ -69,6 +71,34 @@ export function SystemSettingsCard() {
               className="h-10 rounded-xl border-border bg-surface"
             />
             <p className="text-xs text-content-tertiary">Địa chỉ tiền tố truy cập dùng để tạo kết quả hình ảnh.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-content">Tên model upstream mặc định</label>
+            <Input
+              value={String(config?.default_upstream_model_name || "")}
+              onChange={(e) => setDefaultUpstreamModelName(e.target.value)}
+              placeholder="gpt-5-5"
+              className="h-10 rounded-xl border-border bg-surface"
+            />
+            <p className="text-xs text-content-tertiary">Tên model gửi lên upstream khi gpt-image-2 tạo ảnh, mặc định gpt-5-5.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm text-content">Mức độ suy nghĩ mặc định</label>
+            <Select
+              value={String(config?.default_thinking_effort || "auto")}
+              onValueChange={(value) => setDefaultThinkingEffort(value as "auto" | "standard" | "extended" | "max")}
+            >
+              <SelectTrigger className="h-10 rounded-xl border-border bg-surface">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto (không gửi)</SelectItem>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="extended">Extended</SelectItem>
+                <SelectItem value="max">Max</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-content-tertiary">Tên model kết thúc bằng -standard, -extended hoặc -max sẽ được ưu tiên hơn cài đặt này.</p>
           </div>
           <div className="space-y-2">
             <label className="text-sm text-content">Tự động xóa hình ảnh (ngày)</label>
@@ -189,6 +219,7 @@ export function AccountLogsCard() {
   const setAutoRemoveRateLimitedAccounts = useSettingsStore((state) => state.setAutoRemoveRateLimitedAccounts);
   const setImageSettleEnabled = useSettingsStore((state) => state.setImageSettleEnabled);
   const setImageRemoveConversationAfterResult = useSettingsStore((state) => state.setImageRemoveConversationAfterResult);
+  const setImageRemoveConversationAlways = useSettingsStore((state) => state.setImageRemoveConversationAlways);
   const setImageSettleSecs = useSettingsStore((state) => state.setImageSettleSecs);
   const setImageTimeoutRetrySecs = useSettingsStore((state) => state.setImageTimeoutRetrySecs);
   const setAutoReloginAfterRefresh = useSettingsStore((state) => state.setAutoReloginAfterRefresh);
@@ -244,6 +275,14 @@ export function AccountLogsCard() {
             Xóa cuộc trò chuyện cục bộ sau khi có hình ảnh
           </label>
           <p className="text-xs text-content-tertiary">Sau khi nhận được hình ảnh, ẩn bất đồng bộ bản ghi cuộc trò chuyện cục bộ tương ứng trên phía ChatGPT.</p>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content transition hover:bg-surface-secondary/50">
+            <Checkbox
+              checked={Boolean(config?.image_remove_conversation_always)}
+              onCheckedChange={(checked) => setImageRemoveConversationAlways(Boolean(checked))}
+            />
+            Xóa cuộc trò chuyện cục bộ kể cả khi không ra ảnh
+          </label>
+          <p className="text-xs text-content-tertiary">Ẩn luôn bản ghi khi thất bại, timeout hoặc chỉ trả về văn bản (bật lên cũng bao gồm trường hợp ra ảnh thành công).</p>
         </div>
         <div className="space-y-2">
           <label className="text-sm text-content">Thời gian chờ thêm hình ảnh timeout (giây)</label>
