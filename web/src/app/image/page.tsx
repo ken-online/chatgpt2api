@@ -1521,6 +1521,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
                 referenceImages,
                 mode: referenceImages.length > 0 ? ("edit" as const) : turn.mode,
                 images: newImages,
+                resultsDeleted: false,
                 status: "queued" as const,
                 error: undefined,
                 revisions: nextRevisions.length > 0 ? nextRevisions : undefined,
