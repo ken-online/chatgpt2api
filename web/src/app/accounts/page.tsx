@@ -917,7 +917,7 @@ function AccountsPageContent() {
         </DialogContent>
       </Dialog>
 
-      <section className="space-y-3">
+      <section className="mb-6 space-y-3">
         <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
           {metricCards.map((item) => {
             const Icon = item.icon;
@@ -939,11 +939,11 @@ function AccountsPageContent() {
             );
           })}
         </div>
-        <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+        <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
           <CardContent className="p-4">
-            <div className="mb-3 text-sm font-medium text-stone-700">
+            <div className="mb-3 text-sm font-medium text-content">
               Mô hình có sẵn trong hệ thống
-              <span className="ml-1 text-stone-400">({availableModels.length})</span>
+              <span className="ml-1 text-content-tertiary">({availableModels.length})</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {availableModels.length > 0 ? (
@@ -951,7 +951,7 @@ function AccountsPageContent() {
                   <button
                     key={model.id}
                     type="button"
-                    className="inline-flex cursor-pointer items-center rounded-full border border-stone-200 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
+                    className="inline-flex cursor-pointer items-center rounded-full border border-border bg-surface-secondary px-2.5 py-1 text-xs font-medium text-content transition hover:bg-surface-tertiary"
                     onClick={() => {
                       void navigator.clipboard.writeText(model.id);
                       toast.success("Tên mô hình đã sao chép");
@@ -962,15 +962,15 @@ function AccountsPageContent() {
                       src="/openai.svg"
                       alt=""
                       aria-hidden="true"
-                      className="mr-1.5 size-3.5 shrink-0"
+                      className="mr-1.5 size-3.5 shrink-0 dark:invert"
                     />
                     {model.id}
                   </button>
                 ))
               ) : isLoadingModels ? (
-                <span className="text-sm text-stone-400">Đang tải danh sách mô hình...</span>
+                <span className="text-sm text-content-tertiary">Đang tải danh sách mô hình...</span>
               ) : (
-                <span className="text-sm text-stone-400">Hiện tại không có mô hình nào khả dụng</span>
+                <span className="text-sm text-content-tertiary">Hiện tại không có mô hình nào khả dụng</span>
               )}
             </div>
           </CardContent>

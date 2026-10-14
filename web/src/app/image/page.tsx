@@ -1721,8 +1721,8 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <>
-      <section className="mx-auto grid h-[calc(100dvh-6.5rem)] min-h-0 w-full max-w-[1380px] grid-cols-1 gap-2 overflow-hidden px-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:h-[calc(100dvh-5.25rem)] sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <div className="hidden h-full min-h-0 border-r border-stone-200/70 pr-3 lg:block">
+      <section className="grid h-[calc(100dvh-6.5rem)] min-h-0 w-full grid-cols-1 gap-2 overflow-hidden px-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] sm:h-[calc(100dvh-5.25rem)] sm:gap-3 sm:px-3 sm:pb-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="hidden h-full min-h-0 border-r border-border pr-3 lg:block">
           <ImageSidebar
             conversations={conversations}
             isLoadingHistory={isLoadingHistory}
@@ -1770,7 +1770,8 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           </DialogContent>
         </Dialog>
 
-        <Card className="flex min-h-0 flex-col overflow-hidden rounded-2xl border-border/80 bg-surface shadow-sm p-0">
+        <div className="flex min-h-0 flex-col gap-3">
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-border/80 bg-surface shadow-sm p-0">
           <div className="flex items-center justify-between gap-2 border-b border-border bg-surface-secondary/40 px-3 py-2 lg:hidden">
             <Button
               variant="outline"
@@ -1843,6 +1844,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
               <ArrowDown className="size-5" />
             </button>
           </div>
+        </Card>
 
           <ImageComposer
             prompt={imagePrompt}
@@ -1872,7 +1874,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
             onReferenceImageChange={handleReferenceImageChange}
             onRemoveReferenceImage={handleRemoveReferenceImage}
           />
-        </Card>
+        </div>
       </section>
 
       <ImageLightbox
