@@ -202,6 +202,21 @@ async function buildReferenceImageFromStoredImage(image: StoredImage, fileName: 
   };
 }
 
+// Backend stateless: mỗi lượt là 1 request độc lập → lượt tiếp theo không có ảnh tham chiếu
+// thì lấy ảnh thành công gần nhất của các lượt trước làm tham chiếu để giữ ngữ cảnh.
+async function buildPreviousResultReference(previousTurns: ImageTurn[]): Promise<StoredReferenceImage | null> {
+  for (let index = previousTurns.length - 1; index >= 0; index -= 1) {
+    const turn = previousTurns[index];
+    if (turn.resultsDeleted) continue;
+    const image = turn.images.find((item) => item.status === "success" && (item.b64_json || item.url));
+    if (image) {
+      const built = await buildReferenceImageFromStoredImage(image, `previous-${turn.id}.png`);
+      return built?.referenceImage ?? null;
+    }
+  }
+  return null;
+}
+
 function taskDataToStoredImage(image: StoredImage, task: ImageTask): StoredImage {
   if (task.status === "success") {
     const first = task.data?.[0];
@@ -1463,6 +1478,19 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
         return;
       }
 
+      // Sửa prompt của lượt không có tham chiếu → kèm ảnh kết quả lượt trước (như khi gửi lượt mới)
+      let referenceImages = sourceTurn.referenceImages;
+      if (newPrompt && referenceImages.length === 0) {
+        const turnIndex = conversation.turns.findIndex((turn) => turn.id === turnId);
+        try {
+          const previous = await buildPreviousResultReference(conversation.turns.slice(0, turnIndex));
+          if (previous) referenceImages = [previous];
+        } catch (error) {
+          toast.error(`Không đọc được ảnh lượt trước để làm tham chiếu: ${error instanceof Error ? error.message : "lỗi không xác định"}`);
+          return;
+        }
+      }
+
       // Lưu ảnh hiện tại vào revisions nếu có ảnh thành công
       const hasSuccess = !sourceTurn.resultsDeleted && sourceTurn.images.some((img) => img.status === "success");
       const prevRevisions = turnRevisionsRef.current[turnId] || [];
@@ -1487,6 +1515,8 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
             ? {
                 ...turn,
                 prompt,
+                referenceImages,
+                mode: referenceImages.length > 0 ? ("edit" as const) : turn.mode,
                 images: newImages,
                 status: "queued" as const,
                 error: undefined,
@@ -1664,11 +1694,21 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       return;
     }
 
-    const effectiveImageMode: ImageConversationMode = referenceImageFiles.length > 0 ? "edit" : "generate";
-
     const targetConversation = selectedConversationId
       ? conversationsRef.current.find((conversation) => conversation.id === selectedConversationId) ?? null
       : null;
+
+    let turnReferenceImages = referenceImages;
+    if (referenceImageFiles.length === 0 && targetConversation) {
+      try {
+        const previous = await buildPreviousResultReference(targetConversation.turns);
+        if (previous) turnReferenceImages = [previous];
+      } catch (error) {
+        toast.error(`Không đọc được ảnh lượt trước để làm tham chiếu: ${error instanceof Error ? error.message : "lỗi không xác định"}`);
+        return;
+      }
+    }
+    const effectiveImageMode: ImageConversationMode = turnReferenceImages.length > 0 ? "edit" : "generate";
     const now = new Date().toISOString();
     const conversationId = targetConversation?.id ?? createId();
     const turnId = createId();
@@ -1678,7 +1718,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
       prompt,
       model: imageModel,
       mode: effectiveImageMode,
-      referenceImages: effectiveImageMode === "edit" ? referenceImages : [],
+      referenceImages: effectiveImageMode === "edit" ? turnReferenceImages : [],
       count: parsedCount,
       size: imageSize,
       ratio: imageRatio,
