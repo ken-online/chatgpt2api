@@ -828,18 +828,18 @@ function AccountsPageContent() {
 
       {/* Thanh tiến trình */}
       {progress.visible && (
-        <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white/90 shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-sm">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-stone-600">
+              <span className="text-content-secondary">
                 {progress.message}
-                {progress.email && <span className="ml-1 font-medium text-stone-700">{progress.email}</span>}
+                {progress.email && <span className="ml-1 font-medium text-content">{progress.email}</span>}
               </span>
-              <span className="font-medium text-stone-700">
+              <span className="font-medium text-content">
                 {progress.current}/{progress.total}
               </span>
             </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-stone-100">
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-tertiary">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300 ease-out"
                 style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
@@ -876,17 +876,17 @@ function AccountsPageContent() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-stone-700">Máy chủ proxy tài khoản</label>
+              <label className="text-sm font-medium text-content">Máy chủ proxy tài khoản</label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={editProxy}
                   onChange={(event) => setEditProxy(event.target.value)}
                   placeholder="Để trống sử dụng máy chủ proxy toàn cục, ví dụ: http://127.0.0.1:7890"
-                  className="h-11 rounded-xl border-stone-200 bg-white"
+                  className="h-11 rounded-xl border-border bg-surface"
                 />
                 <Button
                   variant="outline"
-                  className="h-11 rounded-xl border-stone-200 bg-white px-4 text-stone-700 sm:w-24"
+                  className="h-11 rounded-xl border-border bg-surface px-4 text-content sm:w-24"
                   onClick={() => void handleTestAccountProxy()}
                   disabled={isTestingProxy}
                 >
@@ -1122,7 +1122,7 @@ function AccountsPageContent() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <Badge variant="outline" className="rounded-md border-stone-200 text-stone-600">
+                          <Badge variant="outline" className="rounded-md border-border text-content-secondary">
                             {displayAccountSource(account)}
                           </Badge>
                         </td>
@@ -1138,7 +1138,7 @@ function AccountsPageContent() {
                         <td className="px-4 py-3">
                           <div className="text-xs leading-5 text-content-tertiary">{account.email ?? "—"}</div>
                         </td>
-                        <td className="px-4 py-3 text-xs leading-5 text-stone-500">
+                        <td className="px-4 py-3 text-xs leading-5 text-content-tertiary">
                           {(() => {
                             const raw = (account as any).created_at;
                             if (!raw) return "—";
@@ -1173,7 +1173,7 @@ function AccountsPageContent() {
                                 className={
                                   inflight > 0
                                     ? "font-semibold text-amber-600"
-                                    : "text-stone-400"
+                                    : "text-content-tertiary"
                                 }
                                 title={
                                   inflight > 0

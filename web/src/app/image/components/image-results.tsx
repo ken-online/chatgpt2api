@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock3, Download, EyeOff, LoaderCircle, Plus, RotateCcw, Scissors, Sparkles, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, Download, EyeOff, LoaderCircle, Pencil, Plus, RotateCcw, Scissors, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ type ImageResultsProps = {
   onDeleteResults: (conversationId: string, turnId: string) => void;
   onReuseTurnConfig: (conversationId: string, turnId: string) => void | Promise<void>;
   onReuseTurnConfigAsNew: (conversationId: string, turnId: string) => void | Promise<void>;
-  onRegenerateTurn: (conversationId: string, turnId: string) => void | Promise<void>;
+  onRegenerateTurn: (conversationId: string, turnId: string, newPrompt?: string) => void | Promise<void>;
   onRetryImage: (conversationId: string, turnId: string, imageId: string) => void | Promise<void>;
   onTimeoutRetryContinue: (taskId: string) => void | Promise<void>;
   onDismissErrors: (conversationId: string, turnId: string) => void | Promise<void>;
@@ -146,6 +146,7 @@ export function ImageResults({
   const [showPixelcutAuth, setShowPixelcutAuth] = useState(false);
   const [pendingRemoveBg, setPendingRemoveBg] = useState<{ id: string; src: string; conversationId: string; turnId: string } | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [editingPrompt, setEditingPrompt] = useState<{ turnId: string; text: string } | null>(null);
 
   // Chỉ khởi động bộ định thời khi có ảnh đang tải, tránh re-render vô ích khi chờ
   const hasLoadingImages = selectedConversation?.turns.some(
@@ -284,9 +285,45 @@ export function ImageResults({
                 <div className="group/prompt max-w-[80%]">
                   {/* Card chứa prompt + ảnh tham chiếu */}
                   <div className="overflow-hidden rounded-2xl bg-surface-secondary">
-                    <div className="px-4 py-3 text-[14px] leading-6 text-content whitespace-pre-wrap break-words sm:text-[15px] sm:leading-7">
-                      {turn.prompt}
-                    </div>
+                    {editingPrompt?.turnId === turn.id ? (
+                      <div className="w-[min(640px,70vw)] p-3">
+                        <textarea
+                          autoFocus
+                          value={editingPrompt.text}
+                          onChange={(event) => setEditingPrompt({ turnId: turn.id, text: event.target.value })}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") setEditingPrompt(null);
+                            if (event.key === "Enter" && (event.ctrlKey || event.metaKey) && editingPrompt.text.trim()) {
+                              setEditingPrompt(null);
+                              void onRegenerateTurn(selectedConversation.id, turn.id, editingPrompt.text);
+                            }
+                          }}
+                          rows={Math.min(10, Math.max(3, editingPrompt.text.split("\n").length + 1))}
+                          className="w-full resize-y rounded-xl border border-border bg-surface px-3 py-2 text-[14px] leading-6 text-content outline-none focus:border-primary-500 sm:text-[15px]"
+                        />
+                        <div className="mt-2 flex items-center justify-end gap-2">
+                          <span className="mr-auto text-[11px] text-content-tertiary">Ctrl+Enter để lưu · Esc để huỷ</span>
+                          <Button variant="ghost" size="sm" className="h-8 rounded-lg text-content-secondary" onClick={() => setEditingPrompt(null)}>
+                            Huỷ
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 rounded-lg bg-primary-600 text-white hover:bg-primary-700"
+                            disabled={!editingPrompt.text.trim()}
+                            onClick={() => {
+                              setEditingPrompt(null);
+                              void onRegenerateTurn(selectedConversation.id, turn.id, editingPrompt.text);
+                            }}
+                          >
+                            Lưu & tạo lại
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="px-4 py-3 text-[14px] leading-6 text-content whitespace-pre-wrap break-words sm:text-[15px] sm:leading-7">
+                        {turn.prompt}
+                      </div>
+                    )}
                     {turn.referenceImages.length > 0 ? (
                       <div className="border-t border-border/20 px-4 pb-3 pt-2.5">
                         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-content-tertiary">
@@ -335,6 +372,15 @@ export function ImageResults({
 
                   {/* Buttons hành động — dòng riêng */}
                   <div className="mt-1 flex items-center justify-end gap-1 px-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingPrompt({ turnId: turn.id, text: turn.prompt })}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-content-tertiary transition hover:bg-surface-secondary hover:text-content"
+                      title="Sửa prompt rồi tạo lại ảnh cho lượt này"
+                    >
+                      <Pencil className="size-3" />
+                      Sửa
+                    </button>
                     <button
                       type="button"
                       onClick={() => void onReuseTurnConfig(selectedConversation.id, turn.id)}

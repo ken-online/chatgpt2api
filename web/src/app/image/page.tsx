@@ -1454,10 +1454,12 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
   /* eslint-enable react-hooks/preserve-manual-memoization */
 
   const handleRegenerateTurn = useCallback(
-    async (conversationId: string, turnId: string) => {
+    async (conversationId: string, turnId: string, newPrompt?: string) => {
       const conversation = conversationsRef.current.find((item) => item.id === conversationId);
       const sourceTurn = conversation?.turns.find((turn) => turn.id === turnId);
-      if (!conversation || !sourceTurn || !sourceTurn.prompt.trim()) {
+      // Có newPrompt = người dùng sửa prompt trên bubble → tạo lại với prompt mới
+      const prompt = newPrompt?.trim() || sourceTurn?.prompt.trim();
+      if (!conversation || !sourceTurn || !prompt) {
         return;
       }
 
@@ -1484,6 +1486,7 @@ function ImagePageContent({ isAdmin }: { isAdmin: boolean }) {
           turn.id === turnId
             ? {
                 ...turn,
+                prompt,
                 images: newImages,
                 status: "queued" as const,
                 error: undefined,

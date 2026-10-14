@@ -1,5 +1,5 @@
 {
-  "auth-key": "Namhoang88!",
+  "auth-key": "",
   "refresh_account_interval_minute": 60,
   "image_retention_days": 999,
   "image_poll_timeout_secs": 120,
