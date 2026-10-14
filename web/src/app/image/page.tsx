@@ -171,7 +171,10 @@ function buildReferenceImageFromResult(image: StoredImage, fileName: string): St
 }
 
 async function fetchImageAsFile(url: string, fileName: string) {
-  const response = await fetch(url);
+  // Ảnh cũ lưu URL http:// (backend sau proxy TLS) → trang https bị chặn mixed content, dùng protocol của trang
+  const target = new URL(url, window.location.href);
+  if (target.host === window.location.host) target.protocol = window.location.protocol;
+  const response = await fetch(target);
   if (!response.ok) {
     throw new Error("Không thể đọc ảnh kết quả");
   }
