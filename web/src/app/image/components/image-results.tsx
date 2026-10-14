@@ -582,7 +582,8 @@ export function ImageResults({
                       }
 
                       if (image.status === "error") {
-                        const isTimeoutError = image.error?.includes("超时") && image.taskId;
+                        // "超时" = lỗi cũ đã lưu; "hết thời gian" = message mới từ backend
+                        const isTimeoutError = (image.error?.includes("超时") || image.error?.includes("hết thời gian")) && image.taskId;
                         return [
                           <div
                             key={image.id}

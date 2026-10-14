@@ -21,16 +21,16 @@ export function SkillPanel() {
   }, []);
 
   const apiBaseUrl = configuredBaseUrl || webConfig.apiUrl.replace(/\/$/, "") || browserBaseUrl;
-  const skillZh = useMemo(() => `---
+  const skillVi = useMemo(() => `---
 name: chatgpt2api-search
-description: 当用户需要联网搜索、查询最新信息、核实事实或需要来源链接时，调用本地 chatgpt2api 搜索接口。
+description: Dùng khi người dùng cần tìm kiếm trên web, tra thông tin mới nhất, kiểm chứng sự thật hoặc cần link nguồn — gọi API tìm kiếm của máy chủ chatgpt2api.
 ---
 
-# ChatGPT2API 搜索
+# ChatGPT2API Tìm kiếm
 
-当用户要求联网搜索、查询最新信息、核实资料、查新闻、查价格、查文档更新或需要来源链接时，使用这个 skill。
+Dùng skill này khi người dùng yêu cầu tìm kiếm trên web, tra thông tin mới nhất, kiểm chứng tài liệu, xem tin tức, giá cả, cập nhật tài liệu hoặc cần link nguồn.
 
-## 接口
+## API
 
 POST ${apiBaseUrl}/v1/search
 
@@ -42,14 +42,14 @@ Content-Type: application/json
 Body:
 
 {
-  "prompt": "<用户要搜索的问题>"
+  "prompt": "<câu hỏi cần tìm kiếm>"
 }
 
-## 返回处理
+## Xử lý kết quả
 
-- 使用接口返回的 \`answer\` 作为主要回答。
-- 如果有 \`sources\`，在回答里附上来源链接。
-- 如果接口报错，简要说明错误并询问是否重试。`, [apiBaseUrl, authKey]);
+- Dùng trường \`answer\` trả về làm câu trả lời chính.
+- Nếu có \`sources\`, đính kèm các link nguồn trong câu trả lời.
+- Nếu API báo lỗi, tóm tắt ngắn lỗi và hỏi người dùng có muốn thử lại không.`, [apiBaseUrl, authKey]);
 
   const skillEn = useMemo(() => `---
 name: chatgpt2api-search
@@ -88,21 +88,21 @@ JSON body:
 - If the endpoint returns an error, summarize the error and ask the user whether to retry.
 - Keep the final answer concise unless the user asks for detail.`, [apiBaseUrl, authKey]);
 
-  const zhPrompt = useMemo(() => `请帮我在本机安装一个用于联网搜索的 skill。
+  const viPrompt = useMemo(() => `Hãy cài giúp tôi một skill tìm kiếm web trên máy này.
 
-要求：
-1. 请按你当前环境的 skill 安装规范，把它安装成本地 skill。
-2. skill 名称为：chatgpt2api-search
-3. 文件名为：SKILL.md
-4. 如果你无法确定本地 skills 目录在哪里，先告诉我需要放到哪个目录，不要猜路径。
-5. 只创建或更新这个 skill 文件，不要修改其他无关文件。
-6. SKILL.md 请写入下面的完整内容。
+Yêu cầu:
+1. Cài thành skill cục bộ theo đúng quy chuẩn cài skill của môi trường hiện tại.
+2. Tên skill: chatgpt2api-search
+3. Tên file: SKILL.md
+4. Nếu không xác định được thư mục skills cục bộ, hãy hỏi tôi cần đặt ở thư mục nào trước, đừng đoán đường dẫn.
+5. Chỉ tạo hoặc cập nhật file skill này, không sửa file nào khác.
+6. Ghi toàn bộ nội dung bên dưới vào SKILL.md.
 
-SKILL.md 内容：
+Nội dung SKILL.md:
 
 \`\`\`markdown
-${skillZh}
-\`\`\``, [skillZh]);
+${skillVi}
+\`\`\``, [skillVi]);
 
   const enPrompt = useMemo(() => `Please install a local web-search skill on this machine.
 
@@ -135,7 +135,7 @@ ${skillEn}
   };
 
   const versions = [
-    { title: "Hướng dẫn cài đặt tiếng Trung", desc: "Sao chép và gửi cho Codex hoặc Claude để cài đặt cục bộ.", prompt: zhPrompt, skill: skillZh },
+    { title: "Hướng dẫn cài đặt tiếng Việt", desc: "Sao chép và gửi cho Codex hoặc Claude để cài đặt cục bộ.", prompt: viPrompt, skill: skillVi },
     { title: "English install prompt", desc: "Copy and send this to Codex or Claude to install locally.", prompt: enPrompt, skill: skillEn },
   ];
 

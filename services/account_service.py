@@ -1591,7 +1591,7 @@ class AccountService:
         for token in access_tokens:
             account = self.get_account(token)
             if not account:
-                errors.append({"token": anonymize_token(token), "error": "账号不存在"})
+                errors.append({"token": anonymize_token(token), "error": "Tài khoản không tồn tại"})
                 if progress_id:
                     self.update_relogin_progress(progress_id, token, "跳过", "Tài khoản không tồn tại")
                 continue
@@ -1601,7 +1601,7 @@ class AccountService:
             if not email or not password:
                 skipped += 1
                 if progress_id:
-                    self.update_relogin_progress(progress_id, token, "跳过", "无邮箱密码")
+                    self.update_relogin_progress(progress_id, token, "跳过", "Không có email/mật khẩu")
                 continue
 
             # 在新线程中执行密码重新登录

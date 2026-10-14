@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { deleteSystemLogs, fetchSystemLogs, type SystemLog } from "@/lib/api";
+import { deleteSystemLogs, displayDataValue, fetchSystemLogs, type SystemLog } from "@/lib/api";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 
 const LogType = {
@@ -293,7 +293,7 @@ function LogsContent() {
                   .map(([key, value]) => (
                     <div key={key} className="flex items-start justify-between gap-4">
                       <span className="text-content-tertiary">{key}</span>
-                      <span className="text-right font-medium break-all text-content">{String(value)}</span>
+                      <span className="text-right font-medium break-all text-content">{displayDataValue(value)}</span>
                     </div>
                   ))}
               </div>

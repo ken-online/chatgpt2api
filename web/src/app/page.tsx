@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 import { httpRequest } from "@/lib/request";
-import type { Account } from "@/lib/api";
+import { displayDataValue, type Account } from "@/lib/api";
 
 type LogEntry = {
   id: string;
@@ -173,6 +173,6 @@ function formatDetail(detail: unknown): string {
   return Object.entries(detail as Record<string, unknown>)
     .filter(([, v]) => v !== null && v !== undefined && v !== "")
     .slice(0, 3)
-    .map(([k, v]) => `${k}: ${String(v)}`)
+    .map(([k, v]) => `${k}: ${displayDataValue(v)}`)
     .join(" · ");
 }

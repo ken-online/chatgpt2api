@@ -131,12 +131,12 @@ class OAuthLoginService:
             try:
                 parsed = parse_qs(urlparse(raw).query)
             except Exception as exc:
-                raise OAuthLoginError(f"无法解析 callback URL: {exc}") from exc
+                raise OAuthLoginError(f"Không phân tích được callback URL: {exc}") from exc
             code = str((parsed.get("code") or [""])[0]).strip()
             state = str((parsed.get("state") or [""])[0]).strip()
             if not code:
                 err = str((parsed.get("error_description") or parsed.get("error") or [""])[0]).strip()
-                raise OAuthLoginError(err or "callback URL 中没有 code 参数")
+                raise OAuthLoginError(err or "callback URL không có tham số code")
             return code, state
         # 用户可能直接粘了 code 字符串
         return raw, ""
@@ -152,13 +152,13 @@ class OAuthLoginService:
         body_sid = str(session_id or "").strip()
         code, state = self._extract_code_from_callback(callback)
         if not code:
-            raise OAuthLoginError("缺少 code 或 callback URL")
+            raise OAuthLoginError("Thiếu code hoặc callback URL")
 
         # state 里嵌的 session_id 优先级最高
         state_sid = state.split(".", 1)[0] if state else ""
         candidate_sids = [sid for sid in (state_sid, body_sid) if sid]
         if not candidate_sids:
-            raise OAuthLoginError("既未提供 session_id，callback URL 中也未携带 state")
+            raise OAuthLoginError("Không có session_id và callback URL cũng không mang state")
 
         with self._lock:
             self._purge_expired_locked()
@@ -172,12 +172,12 @@ class OAuthLoginService:
                     break
         if session is None:
             raise OAuthLoginError(
-                "OAuth 会话已过期或不存在，请回到导入对话框点\"重新生成\"再走一次"
+                "Phiên OAuth đã hết hạn hoặc không tồn tại, hãy quay lại hộp thoại nhập và bấm \"Tạo lại\" để làm lại"
             )
 
         if state and session.get("state") and state != session["state"]:
             raise OAuthLoginError(
-                "state 不匹配。常见原因：你点过两次\"打开授权页面\"，但浏览器里登录的还是前一次的窗口。请点\"重新生成\"重来。"
+                "state không khớp. Nguyên nhân thường gặp: đã bấm \"Mở trang uỷ quyền\" hai lần nhưng trình duyệt vẫn đăng nhập ở cửa sổ lần trước. Hãy bấm \"Tạo lại\" để làm lại."
             )
 
         tokens = self._exchange_code(
@@ -216,7 +216,7 @@ class OAuthLoginService:
                 timeout=60,
             )
         except Exception as exc:
-            raise OAuthLoginError(f"换 token 网络异常: {exc}") from exc
+            raise OAuthLoginError(f"Lỗi mạng khi đổi token: {exc}") from exc
         finally:
             session.close()
 
@@ -242,7 +242,7 @@ class OAuthLoginService:
                 flush=True,
             )
             raise OAuthLoginError(
-                f"OpenAI 拒绝换 token (HTTP {response.status_code}){': ' + detail if detail else ''}"
+                f"OpenAI từ chối đổi token (HTTP {response.status_code}){': ' + detail if detail else ''}"
             )
 
         access_token = str(data.get("access_token") or "").strip()
@@ -250,11 +250,11 @@ class OAuthLoginService:
         id_token = str(data.get("id_token") or "").strip()
 
         if not access_token:
-            raise OAuthLoginError("OpenAI 返回的 access_token 为空")
+            raise OAuthLoginError("OpenAI trả về access_token rỗng")
         if not refresh_token:
             # scope 含 offline_access 时正常会下发 refresh_token；这里给出明确提示
             raise OAuthLoginError(
-                "OpenAI 没有返回 refresh_token（可能 scope 未包含 offline_access 或 code 已使用过）"
+                "OpenAI không trả về refresh_token (có thể scope thiếu offline_access hoặc code đã được dùng)"
             )
 
         return {

@@ -292,9 +292,9 @@ def _validate_image_storage_settings(settings: dict[str, object]) -> None:
     if not _normalize_bool(settings.get("enabled"), False):
         return
     if not str(settings.get("webdav_url") or "").strip():
-        raise ValueError("启用 WebDAV 图片存储后必须填写 WebDAV URL")
+        raise ValueError("Đã bật lưu ảnh WebDAV thì phải điền WebDAV URL")
     if not str(settings.get("webdav_password") or "").strip():
-        raise ValueError("启用 WebDAV 图片存储后必须填写 WebDAV 密码")
+        raise ValueError("Đã bật lưu ảnh WebDAV thì phải điền mật khẩu WebDAV")
 
 
 @dataclass(frozen=True)
@@ -333,8 +333,8 @@ def _load_settings() -> LoadedSettings:
     auth_key = _normalize_auth_key(os.getenv("CHATGPT2API_AUTH_KEY") or raw_config.get("auth-key"))
     if _is_invalid_auth_key(auth_key):
         raise ValueError(
-            "❌ auth-key 未设置！\n"
-            "请在环境变量 CHATGPT2API_AUTH_KEY 中设置，或者在 config.json 中填写 auth-key。"
+            "❌ Chưa đặt auth-key!\n"
+            "Đặt biến môi trường CHATGPT2API_AUTH_KEY (khuyên dùng file .env cạnh docker-compose.yml), hoặc điền auth-key trong config.json."
         )
 
     try:
@@ -356,11 +356,11 @@ class ConfigStore:
         self._storage_backend: StorageBackend | None = None
         if _is_invalid_auth_key(self.auth_key):
             raise ValueError(
-                "❌ auth-key 未设置！\n"
-                "请按以下任意一种方式解决：\n"
-                "1. 在 Render 的 Environment 变量中添加：\n"
+                "❌ Chưa đặt auth-key!\n"
+                "Chọn một trong các cách sau:\n"
+                "1. Đặt biến môi trường (vd trong file .env cạnh docker-compose.yml):\n"
                 "   CHATGPT2API_AUTH_KEY = your_real_auth_key\n"
-                "2. 或者在 config.json 中填写：\n"
+                "2. Hoặc điền trong config.json:\n"
                 '   "auth-key": "your_real_auth_key"'
             )
 

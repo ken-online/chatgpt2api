@@ -2,6 +2,21 @@ import { httpRequest, request } from "@/lib/request";
 
 export type AccountType = string;
 export type AccountStatus = "正常" | "限流" | "异常" | "禁用";
+
+// Giá trị data gốc tiếng Trung (hợp đồng backend↔frontend, KHÔNG đổi) → nhãn tiếng Việt khi hiển thị
+const DATA_VALUE_LABELS: Record<string, string> = {
+  正常: "Bình thường",
+  限流: "Giới hạn tốc độ",
+  异常: "Bất thường",
+  禁用: "Vô hiệu hoá",
+  成功: "Thành công",
+  跳过: "Bỏ qua",
+};
+
+export function displayDataValue(value: unknown): string {
+  const text = String(value);
+  return DATA_VALUE_LABELS[text] ?? text;
+}
 export type ImageModel = string;
 export type AuthRole = "admin" | "user";
 export type ImageStorageMode = "local" | "webdav" | "both";

@@ -120,6 +120,9 @@ _CONTENT_POLICY_KEYWORDS = (
     "裸体", "裸露", "色情", "性内容", "未成年",
     # 通用拒绝
     "抱歉，我不能",
+    # Tiếng Việt (OAI-Language: vi-VN) — ⚠️ chưa đối chiếu câu từ chối thật của ChatGPT
+    "vi phạm", "chính sách nội dung", "khỏa thân", "khiêu dâm", "tình dục", "vị thành niên",
+    "không thể tạo", "không thể giúp",
 )
 
 
@@ -190,7 +193,7 @@ class OpenAIBackendAPI:
             "User-Agent": self.user_agent,
             "Origin": self.base_url,
             "Referer": self.base_url + "/",
-            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-US;q=0.7",
+            "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
             "Priority": "u=1, i",
@@ -208,7 +211,7 @@ class OpenAIBackendAPI:
             "Sec-Fetch-Site": "same-origin",
             "OAI-Device-Id": self.device_id,
             "OAI-Session-Id": self.session_id,
-            "OAI-Language": "zh-CN",
+            "OAI-Language": "vi-VN",
             "OAI-Client-Version": self.client_version,
             "OAI-Client-Build-Number": self.client_build_number,
         })
@@ -380,7 +383,7 @@ class OpenAIBackendAPI:
         return {
             "User-Agent": self.user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+            "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.8",
             "Sec-Ch-Ua": self.session.headers["Sec-Ch-Ua"],
             "Sec-Ch-Ua-Mobile": self.session.headers["Sec-Ch-Ua-Mobile"],
             "Sec-Ch-Ua-Platform": self.session.headers["Sec-Ch-Ua-Platform"],
@@ -2307,9 +2310,9 @@ class OpenAIBackendAPI:
             "last_task_error": last_task_error if last_task_error else None,
         })
         exc = ImagePollTimeoutError(
-            f"ChatGPT 生图超时（已等待 {timeout_secs} 秒）。"
-            f"当前超时阈值可在 config.json 中调大 image_poll_timeout_secs，"
-            f"也可能是账号被限流或生图队列拥堵导致。",
+            f"ChatGPT tạo ảnh hết thời gian (đã chờ {timeout_secs} giây). "
+            f"Có thể tăng image_poll_timeout_secs trong cài đặt; "
+            f"cũng có thể do tài khoản bị giới hạn tốc độ hoặc hàng đợi tạo ảnh quá tải.",
             conversation_id or "",
         )
         if last_task_error:
@@ -2629,7 +2632,7 @@ class OpenAIBackendAPI:
         watchdog = threading.Timer(hard_cap_secs, response.close)
         watchdog.daemon = True
         watchdog.start()
-        timeout_message = f"图片生成流已超过硬上限 {int(hard_cap_secs)} 秒，已强制中断（上游可能未生成图片）"
+        timeout_message = f"Luồng tạo ảnh vượt giới hạn cứng {int(hard_cap_secs)} giây, đã buộc ngắt (upstream có thể chưa tạo ảnh)"
         try:
             for payload in iter_sse_payloads(response):
                 yield payload
