@@ -175,7 +175,7 @@ export function ImageSidebar({
                             if (e.key === "Escape") cancelRename();
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-full rounded border border-stone-300 bg-white px-1 py-0.5 text-sm outline-none focus:border-stone-500"
+                          className="w-full rounded border border-border-secondary bg-surface px-1 py-0.5 text-sm outline-none focus:border-primary-500"
                         />
                       ) : (
                         <span className="truncate">{conversation.title}</span>

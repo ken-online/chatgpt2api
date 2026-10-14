@@ -219,21 +219,21 @@ const usableModels = ["gpt-image-2", "codex-gpt-image-2", "auto", "gpt-5", "gpt-
 
 function ParamTable({ rows }: { rows: ParamRow[] }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-stone-200">
+    <div className="overflow-hidden rounded-lg border border-border">
       <table className="w-full text-left text-xs">
-        <thead className="bg-stone-50 text-stone-500">
+        <thead className="bg-surface-secondary text-content-tertiary">
           <tr>
             <th className="px-3 py-2 font-medium">Tham số</th>
             <th className="px-3 py-2 font-medium">Loại</th>
             <th className="px-3 py-2 font-medium">Mô tả</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-stone-100 bg-white">
+        <tbody className="divide-y divide-stone-100 bg-surface">
           {rows.map(([name, type, desc]) => (
             <tr key={name}>
-              <td className="px-3 py-2 font-mono text-stone-800">{name}</td>
-              <td className="px-3 py-2 font-mono text-stone-500">{type}</td>
-              <td className="px-3 py-2 text-stone-600">{desc}</td>
+              <td className="px-3 py-2 font-mono text-content">{name}</td>
+              <td className="px-3 py-2 font-mono text-content-tertiary">{type}</td>
+              <td className="px-3 py-2 text-content-secondary">{desc}</td>
             </tr>
           ))}
         </tbody>
@@ -259,42 +259,42 @@ export function ApiDocsCard() {
   }, []);
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+    <Card className="rounded-2xl border-border/80 bg-surface/90 shadow-sm">
       <CardContent className="space-y-5 p-6">
         <div>
-          <div className="flex items-center gap-2 text-base font-semibold text-stone-900">
-            <KeyRound className="size-5 text-stone-500" />
+          <div className="flex items-center gap-2 text-base font-semibold text-content">
+            <KeyRound className="size-5 text-content-tertiary" />
             Hướng dẫn tích hợp giao diện
           </div>
-          <p className="mt-1 text-xs leading-6 text-stone-500">
+          <p className="mt-1 text-xs leading-6 text-content-tertiary">
             Các ứng dụng của bên thứ ba được tích hợp qua giao diện tương thích OpenAI; giao diện tác vụ tệp cũng sử dụng cùng một bộ phương pháp xác thực.
           </p>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-1 rounded-xl border border-stone-200 bg-white px-3 py-2">
-            <div className="text-xs text-stone-500">Địa chỉ dịch vụ</div>
-            <div className="break-all font-mono text-xs text-stone-800">{serviceBaseUrl}</div>
+          <div className="space-y-1 rounded-xl border border-border bg-surface px-3 py-2">
+            <div className="text-xs text-content-tertiary">Địa chỉ dịch vụ</div>
+            <div className="break-all font-mono text-xs text-content">{serviceBaseUrl}</div>
           </div>
-          <div className="space-y-1 rounded-xl border border-stone-200 bg-white px-3 py-2">
-            <div className="text-xs text-stone-500">Base URL (OpenAI)</div>
-            <div className="break-all font-mono text-xs text-stone-800">{openAIBaseUrl}</div>
+          <div className="space-y-1 rounded-xl border border-border bg-surface px-3 py-2">
+            <div className="text-xs text-content-tertiary">Base URL (OpenAI)</div>
+            <div className="break-all font-mono text-xs text-content">{openAIBaseUrl}</div>
           </div>
-          <div className="space-y-1 rounded-xl border border-stone-200 bg-white px-3 py-2">
-            <div className="text-xs text-stone-500">API Key</div>
-            <div className="break-all font-mono text-xs text-stone-800">{displayKey}</div>
+          <div className="space-y-1 rounded-xl border border-border bg-surface px-3 py-2">
+            <div className="text-xs text-content-tertiary">API Key</div>
+            <div className="break-all font-mono text-xs text-content">{displayKey}</div>
           </div>
-          <div className="space-y-1 rounded-xl border border-stone-200 bg-white px-3 py-2">
-            <div className="text-xs text-stone-500">Tiêu đề yêu cầu</div>
-            <div className="break-all font-mono text-xs text-stone-800">Authorization: Bearer {displayKey}</div>
+          <div className="space-y-1 rounded-xl border border-border bg-surface px-3 py-2">
+            <div className="text-xs text-content-tertiary">Tiêu đề yêu cầu</div>
+            <div className="break-all font-mono text-xs text-content">Authorization: Bearer {displayKey}</div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs font-medium text-stone-600">Các mô hình thường dùng, cũng có thể yêu cầu /v1/models</div>
+          <div className="text-xs font-medium text-content-secondary">Các mô hình thường dùng, cũng có thể yêu cầu /v1/models</div>
           <div className="flex flex-wrap gap-2">
             {usableModels.map((model) => (
-              <span key={model} className="rounded-md border border-stone-200 bg-white px-2 py-1 font-mono text-xs text-stone-700">{model}</span>
+              <span key={model} className="rounded-md border border-border bg-surface px-2 py-1 font-mono text-xs text-content-secondary">{model}</span>
             ))}
           </div>
         </div>
@@ -303,31 +303,31 @@ export function ApiDocsCard() {
           {docs.map((item) => {
             const Icon = item.icon;
             return (
-              <details key={item.path} className="group rounded-xl border border-stone-200 bg-white px-4 py-3">
+              <details key={item.path} className="group rounded-xl border border-border bg-surface px-4 py-3">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-stone-100 text-stone-600">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary text-content-secondary">
                       <Icon className="size-4" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-stone-900">{item.title}</span>
-                      <span className="mt-1 block truncate font-mono text-xs text-stone-500">{item.method} {item.path}</span>
+                      <span className="block text-sm font-semibold text-content">{item.title}</span>
+                      <span className="mt-1 block truncate font-mono text-xs text-content-tertiary">{item.method} {item.path}</span>
                     </span>
                   </span>
-                  <ChevronDown className="size-4 shrink-0 text-stone-400 transition group-open:rotate-180" />
+                  <ChevronDown className="size-4 shrink-0 text-content-tertiary transition group-open:rotate-180" />
                 </summary>
 
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-stone-700">Tham số đầu vào</h3>
+                    <h3 className="text-xs font-semibold text-content-secondary">Tham số đầu vào</h3>
                     <ParamTable rows={item.input} />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-stone-700">Tham số đầu ra</h3>
+                    <h3 className="text-xs font-semibold text-content-secondary">Tham số đầu ra</h3>
                     <ParamTable rows={item.output} />
                   </div>
                   <div className="space-y-2 lg:col-span-2">
-                    <h3 className="text-xs font-semibold text-stone-700">Ví dụ gọi</h3>
+                    <h3 className="text-xs font-semibold text-content-secondary">Ví dụ gọi</h3>
                     <pre className="overflow-auto whitespace-pre-wrap break-all rounded-xl bg-stone-950 px-3 py-3 text-xs leading-5 text-stone-100">{item.example(openAIBaseUrl, displayKey)}</pre>
                   </div>
                 </div>

@@ -142,6 +142,8 @@ export function ImageResults({
   onRemoveBgResult: onRemoveBgResultProp,
 }: ImageResultsProps) {
   const imageDimensionsRef = useRef<Record<string, string>>({});
+  // Kích thước thật của ảnh (ChatGPT có thể trả khác kích thước yêu cầu) — hiện ở nhãn dưới ảnh
+  const [loadedSizes, setLoadedSizes] = useState<Record<string, string>>({});
   const [removingBgIds, setRemovingBgIds] = useState<Set<string>>(new Set());
   const [showPixelcutAuth, setShowPixelcutAuth] = useState(false);
   const [pendingRemoveBg, setPendingRemoveBg] = useState<{ id: string; src: string; conversationId: string; turnId: string } | null>(null);
@@ -229,6 +231,8 @@ export function ImageResults({
     if (imageDimensionsRef.current[id] !== dimensions) {
       imageDimensionsRef.current[id] = dimensions;
     }
+    const size = `${width}x${height}`;
+    setLoadedSizes((prev) => (prev[id] === size ? prev : { ...prev, [id]: size }));
   };
 
   if (!selectedConversation) {
@@ -258,6 +262,7 @@ export function ImageResults({
         const viewSlot = turnViewSlot[turn.id] ?? totalSlots - 1;
         const isViewingCurrent = viewSlot >= totalSlots - 1;
         const displayImages = isViewingCurrent ? turn.images : (revisions[viewSlot] ?? turn.images);
+        const sizeLabel = displayImages.map((image) => loadedSizes[image.id]).find(Boolean) || turn.size;
 
         const referenceLightboxImages = turn.referenceImages.map((image, index) => ({
           id: `${turn.id}-reference-${index}`,
@@ -668,10 +673,10 @@ export function ImageResults({
                   </span>
                   <span className="text-content-tertiary/50">{META_DOT}</span>
                   <span>{turn.count} ảnh</span>
-                  {turn.size ? (
+                  {sizeLabel ? (
                     <>
                       <span className="text-content-tertiary/50">{META_DOT}</span>
-                      <span>{turn.size}</span>
+                      <span>{sizeLabel}</span>
                     </>
                   ) : null}
                   {turn.status === "queued" && isViewingCurrent ? (
@@ -800,7 +805,7 @@ const LazyImage = memo(function LazyImage({ src, alt, className, onLoad, onOpen 
           />
         </button>
       ) : (
-        <div className={`animate-pulse rounded-xl bg-stone-100 min-h-[200px] sm:min-h-[280px] ${className}`} />
+        <div className={`animate-pulse rounded-xl bg-surface-tertiary min-h-[200px] sm:min-h-[280px] ${className}`} />
       )}
     </div>
   );

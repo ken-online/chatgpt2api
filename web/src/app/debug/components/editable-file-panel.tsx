@@ -329,7 +329,7 @@ export function EditableFilePanel({ title, kind, endpoint, defaultPrompt, imageR
                     <Button size="sm" variant="ghost" onClick={() => startRename(id)} className="size-7 px-0">
                       <Pencil className="size-3.5" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ type: "one", id })} className="size-7 px-0 text-stone-400 hover:text-rose-500">
+                    <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm({ type: "one", id })} className="size-7 px-0 text-content-tertiary hover:text-rose-500">
                       <Trash2 className="size-3.5" />
                     </Button>
                   </div>

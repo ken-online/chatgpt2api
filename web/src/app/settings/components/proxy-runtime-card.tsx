@@ -37,9 +37,9 @@ export function ProxyRuntimeCard() {
 
   if (isLoadingConfig || !config?.proxy_runtime) {
     return (
-      <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+      <Card className="rounded-2xl border-border/80 bg-surface/90 shadow-sm">
         <CardContent className="flex items-center justify-center p-10">
-          <LoaderCircle className="size-5 animate-spin text-stone-400" />
+          <LoaderCircle className="size-5 animate-spin text-content-tertiary" />
         </CardContent>
       </Card>
     );
@@ -62,12 +62,12 @@ export function ProxyRuntimeCard() {
       const data = await testProxy();
       setProxyResult(data.result);
       if (data.result.ok) {
-        toast.success(`Proxy xóa chướng ngại vật có sẵn (${data.result.latency_ms} ms, HTTP ${data.result.status})`);
+        toast.success(`Proxy vượt Cloudflare hoạt động (${data.result.latency_ms} ms, HTTP ${data.result.status})`);
       } else {
-        toast.error(`Proxy xóa chướng ngại vật không có sẵn: ${data.result.error ?? "Lỗi không xác định"}`);
+        toast.error(`Proxy vượt Cloudflare không hoạt động: ${data.result.error ?? "Lỗi không xác định"}`);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kiểm tra proxy xóa chướng ngại vật thất bại");
+      toast.error(error instanceof Error ? error.message : "Kiểm tra proxy vượt Cloudflare thất bại");
     } finally {
       setIsTestingProxy(false);
     }
@@ -84,61 +84,61 @@ export function ProxyRuntimeCard() {
       const data = await testProxyClearance(targetUrl.trim() || "https://chatgpt.com");
       setClearanceResult(data.result);
       if (data.result.ok) {
-        toast.success(`Clearance lấy thành công (${data.result.latency_ms} ms)`);
+        toast.success(`Lấy clearance thành công (${data.result.latency_ms} ms)`);
       } else {
-        toast.error(`Clearance lấy thất bại: ${data.result.error ?? data.result.status}`);
+        toast.error(`Lấy clearance thất bại: ${data.result.error ?? data.result.status}`);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kiểm tra Clearance thất bại");
+      toast.error(error instanceof Error ? error.message : "Kiểm tra clearance thất bại");
     } finally {
       setIsTestingClearance(false);
     }
   };
 
   return (
-    <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
+    <Card className="rounded-2xl border-border/80 bg-surface/90 shadow-sm">
       <CardContent className="space-y-5 p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-base font-semibold text-stone-900">
-              <PlugZap className="size-5 text-stone-500" />
-              FlareSolverr xóa chướng ngại vật
+            <div className="flex items-center gap-2 text-base font-semibold text-content">
+              <PlugZap className="size-5 text-content-tertiary" />
+              Vượt Cloudflare (FlareSolverr)
             </div>
-            <p className="mt-1 text-xs leading-6 text-stone-500">
-              Mặc định tắt. Được sử dụng để lấy clearance khi yêu cầu ngược gặp khóa Cloudflare, có thể kết hợp với chuỗi proxy WARP / Privoxy để thử lại.
+            <p className="mt-1 text-xs leading-6 text-content-tertiary">
+              Mặc định tắt. Dùng để lấy cf_clearance khi request lên upstream bị Cloudflare chặn, có thể kết hợp chuỗi proxy WARP / Privoxy để thử lại.
             </p>
           </div>
-          <span className={`rounded-full px-3 py-1 text-xs ${runtimeEnabled ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-stone-500"}`}>
+          <span className={`rounded-full px-3 py-1 text-xs ${runtimeEnabled ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300" : "bg-surface-tertiary text-content-tertiary"}`}>
             {runtimeEnabled ? "Đã bật" : "Chưa bật"}
           </span>
         </div>
 
-        <div className="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-xs leading-6 text-stone-600">
-          Ưu tiên proxy: proxy tài khoản &gt; chuỗi proxy FlareSolverr &gt; proxy rõ ràng &gt; proxy toàn cầu. Cookie / cf_clearance sẽ không được trả về dưới dạng văn bản trong phản hồi giao diện.
+        <div className="rounded-xl border border-border bg-surface-secondary px-4 py-3 text-xs leading-6 text-content-secondary">
+          Thứ tự ưu tiên proxy: proxy riêng của tài khoản &gt; chuỗi proxy FlareSolverr &gt; proxy chỉ định &gt; proxy chung. Cookie / cf_clearance không bao giờ được trả về dạng rõ trong phản hồi API.
         </div>
 
-        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800">
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-xs leading-6 text-amber-800 dark:text-amber-300">
           <AlertTriangle className="mt-1 size-4 shrink-0" />
-          <span>Trước khi sử dụng chế độ FlareSolverr, vui lòng khởi động các container liên quan như flaresolverr, privoxy, warp-proxy qua Docker; URL bên trong container thường được điền http://flaresolverr:8191.</span>
+          <span>Trước khi bật, hãy chạy các container flaresolverr, privoxy, warp-proxy bằng Docker; trong mạng Docker, URL thường là http://flaresolverr:8191.</span>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 md:col-span-2">
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content-secondary md:col-span-2">
             <Checkbox
               checked={runtimeEnabled}
               onCheckedChange={(checked) => setProxyRuntimeField("enabled", Boolean(checked))}
             />
-            Bật FlareSolverr xóa chướng ngại vật
+            Bật vượt Cloudflare
           </label>
 
           <div className="space-y-2">
-            <label className="text-sm text-stone-700">Chế độ egress</label>
+            <label className="text-sm text-content-secondary">Kiểu kết nối ra ngoài</label>
             <Select
               value={runtime.egress_mode}
               onValueChange={(value) => setProxyRuntimeField("egress_mode", value as ProxyRuntimeEgressMode)}
               disabled={!runtimeEnabled}
             >
-              <SelectTrigger className="h-10 rounded-xl border-stone-200 bg-white shadow-none">
+              <SelectTrigger className="h-10 rounded-xl border-border bg-surface shadow-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -146,47 +146,47 @@ export function ProxyRuntimeCard() {
                 <SelectItem value="single_proxy">Proxy đơn / WARP</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-stone-500">WARP compose mặc định sử dụng single_proxy.</p>
+            <p className="text-xs text-content-tertiary">Bộ compose WARP mặc định dùng chế độ Proxy đơn.</p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-stone-700">URL proxy xóa chướng ngại vật</label>
+            <label className="text-sm text-content-secondary">URL proxy vượt Cloudflare</label>
             <Input
               value={runtime.proxy_url}
               onChange={(event) => setProxyRuntimeField("proxy_url", event.target.value)}
               placeholder="http://privoxy:8118"
-              className="h-10 rounded-xl border-stone-200 bg-white"
+              className="h-10 rounded-xl border-border bg-surface"
               disabled={!runtimeEnabled || runtime.egress_mode !== "single_proxy"}
             />
-            <p className="text-xs leading-5 text-stone-500">
-              Hỗ trợ http/https/socks5/socks5h, socks5 sẽ được chuyển đổi sang socks5h. Định dạng với xác thực: giao_thức://tài_khoản:mật_khẩu@máy_chủ:cổng, cũng có thể dán trực tiếp máy_chủ:cổng:tài_khoản:mật_khẩu.
+            <p className="text-xs leading-5 text-content-tertiary">
+              Hỗ trợ http/https/socks5/socks5h (socks5 tự chuyển thành socks5h). Có xác thực: giao_thức://tài_khoản:mật_khẩu@máy_chủ:cổng, hoặc dán thẳng máy_chủ:cổng:tài_khoản:mật_khẩu.
             </p>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-stone-700">URL proxy tài nguyên</label>
+            <label className="text-sm text-content-secondary">URL proxy tải tài nguyên</label>
             <Input
               value={runtime.resource_proxy_url}
               onChange={(event) => setProxyRuntimeField("resource_proxy_url", event.target.value)}
-              placeholder="Để trống sẽ sử dụng lại proxy xóa chướng ngại vật"
-              className="h-10 rounded-xl border-stone-200 bg-white"
+              placeholder="Để trống sẽ dùng chung proxy vượt Cloudflare"
+              className="h-10 rounded-xl border-border bg-surface"
               disabled={!runtimeEnabled || runtime.egress_mode !== "single_proxy"}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-stone-700">Mã trạng thái đặt lại phiên</label>
+            <label className="text-sm text-content-secondary">Mã HTTP để làm mới phiên</label>
             <Input
               value={runtime.reset_session_status_codes.join(",")}
               onChange={(event) => setProxyRuntimeStatusCodesText(event.target.value)}
               placeholder="403"
-              className="h-10 rounded-xl border-stone-200 bg-white"
+              className="h-10 rounded-xl border-border bg-surface"
               disabled={!runtimeEnabled}
             />
-            <p className="text-xs text-stone-500">Mặc định 403, chỉ kích hoạt cho các lỗi Cloudflare/thử thách.</p>
+            <p className="text-xs text-content-tertiary">Mặc định 403, chỉ áp dụng cho lỗi chặn/thử thách của Cloudflare.</p>
           </div>
 
-          <label className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700">
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm text-content-secondary">
             <Checkbox
               checked={Boolean(runtime.skip_ssl_verify)}
               onCheckedChange={(checked) => setProxyRuntimeField("skip_ssl_verify", Boolean(checked))}
@@ -199,38 +199,38 @@ export function ProxyRuntimeCard() {
             <Button
               type="button"
               variant="outline"
-              className="h-9 rounded-xl border-stone-200 bg-white px-4 text-stone-700"
+              className="h-9 rounded-xl border-border bg-surface px-4 text-content-secondary"
               onClick={() => void handleTestRuntimeProxy()}
               disabled={isTestingProxy || !runtimeEnabled}
             >
               {isTestingProxy ? <LoaderCircle className="size-4 animate-spin" /> : <PlugZap className="size-4" />}
-              Kiểm tra proxy xóa chướng ngại vật hiện tại
+              Kiểm tra proxy
             </Button>
           </div>
 
           {proxyResult ? (
-            <div className={`rounded-xl border px-3 py-2 text-xs leading-6 md:col-span-2 ${proxyResult.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
+            <div className={`rounded-xl border px-3 py-2 text-xs leading-6 md:col-span-2 ${proxyResult.ok ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300" : "border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300"}`}>
               {proxyResult.ok
-                ? `Proxy có sẵn: HTTP ${proxyResult.status}, thời gian ${proxyResult.latency_ms} ms, nguồn ${proxyResult.proxy_source ?? "unknown"}`
-                : `Proxy không có sẵn: ${proxyResult.error ?? "Lỗi không xác định"} (thời gian ${proxyResult.latency_ms} ms)`}
+                ? `Proxy hoạt động: HTTP ${proxyResult.status}, thời gian ${proxyResult.latency_ms} ms, nguồn ${proxyResult.proxy_source ?? "unknown"}`
+                : `Proxy không hoạt động: ${proxyResult.error ?? "Lỗi không xác định"} (thời gian ${proxyResult.latency_ms} ms)`}
             </div>
           ) : null}
         </div>
 
-        <div className="space-y-4 rounded-xl border border-stone-200 bg-white px-4 py-3">
+        <div className="space-y-4 rounded-xl border border-border bg-surface px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium text-stone-800">
-              <Cookie className="size-4 text-stone-500" />
+            <div className="flex items-center gap-2 text-sm font-medium text-content">
+              <Cookie className="size-4 text-content-tertiary" />
               Cloudflare Clearance
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs ${clearance.enabled ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-stone-500"}`}>
-              {clearance.enabled ? clearanceMode : "vô hiệu hóa"}
+            <span className={`rounded-full px-3 py-1 text-xs ${clearance.enabled ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300" : "bg-surface-tertiary text-content-tertiary"}`}>
+              {clearance.enabled ? clearanceMode : "Đang tắt"}
             </span>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Chế độ Clearance</label>
+              <label className="text-sm text-content-secondary">Chế độ Clearance</label>
               <Select
                 value={clearanceMode}
                 onValueChange={(value) => {
@@ -240,7 +240,7 @@ export function ProxyRuntimeCard() {
                 }}
                 disabled={!runtimeEnabled}
               >
-                <SelectTrigger className="h-10 rounded-xl border-stone-200 bg-white shadow-none">
+                <SelectTrigger className="h-10 rounded-xl border-border bg-surface shadow-none">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -252,89 +252,89 @@ export function ProxyRuntimeCard() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">URL FlareSolverr</label>
+              <label className="text-sm text-content-secondary">URL FlareSolverr</label>
               <Input
                 value={clearance.flaresolverr_url}
                 onChange={(event) => setProxyRuntimeClearanceField("flaresolverr_url", event.target.value)}
                 placeholder="http://flaresolverr:8191"
-                className="h-10 rounded-xl border-stone-200 bg-white"
+                className="h-10 rounded-xl border-border bg-surface"
                 disabled={!runtimeEnabled || clearanceMode !== "flaresolverr"}
               />
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-sm text-stone-700">User-Agent</label>
+              <label className="text-sm text-content-secondary">User-Agent</label>
               <Input
                 value={clearance.user_agent}
                 onChange={(event) => setProxyRuntimeClearanceField("user_agent", event.target.value)}
-                className="h-10 rounded-xl border-stone-200 bg-white font-mono text-xs"
+                className="h-10 rounded-xl border-border bg-surface font-mono text-xs"
                 disabled={!runtimeEnabled || clearanceMode === "none"}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Hết thời gian chờ (giây)</label>
+              <label className="text-sm text-content-secondary">Thời gian chờ tối đa (giây)</label>
               <Input
                 value={String(clearance.timeout_sec)}
                 onChange={(event) => setProxyRuntimeClearanceField("timeout_sec", event.target.value)}
                 placeholder="60"
-                className="h-10 rounded-xl border-stone-200 bg-white"
+                className="h-10 rounded-xl border-border bg-surface"
                 disabled={!runtimeEnabled || clearanceMode === "none"}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">Khoảng làm mới (giây)</label>
+              <label className="text-sm text-content-secondary">Khoảng làm mới (giây)</label>
               <Input
                 value={String(clearance.refresh_interval)}
                 onChange={(event) => setProxyRuntimeClearanceField("refresh_interval", event.target.value)}
                 placeholder="3600"
-                className="h-10 rounded-xl border-stone-200 bg-white"
+                className="h-10 rounded-xl border-border bg-surface"
                 disabled={!runtimeEnabled || clearanceMode === "none"}
               />
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-sm text-stone-700">Cookie thủ công</label>
+              <label className="text-sm text-content-secondary">Cookie thủ công</label>
               <Textarea
                 value={clearance.cf_cookies}
                 onChange={(event) => setProxyRuntimeClearanceField("cf_cookies", event.target.value)}
                 placeholder="Tùy chọn: foo=bar; cf_clearance=..."
-                className="min-h-24 rounded-xl border-stone-200 bg-white font-mono text-xs shadow-none"
+                className="min-h-24 rounded-xl border-border bg-surface font-mono text-xs shadow-none"
                 disabled={!runtimeEnabled || clearanceMode !== "manual"}
               />
-              <p className="text-xs text-stone-500">
-                {hasStoredClearance ? "Máy chủ đã lưu Cookie/clearance; để trống không sẽ xóa các giá trị đã lưu." : "Để trống có nghĩa là không sử dụng Cookie thủ công."}
+              <p className="text-xs text-content-tertiary">
+                {hasStoredClearance ? "Máy chủ đã lưu Cookie/clearance; để trống rồi lưu sẽ không xoá giá trị cũ." : "Để trống nghĩa là không dùng Cookie thủ công."}
               </p>
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <label className="text-sm text-stone-700">cf_clearance riêng</label>
+              <label className="text-sm text-content-secondary">cf_clearance riêng</label>
               <Input
                 value={clearance.cf_clearance}
                 onChange={(event) => setProxyRuntimeClearanceField("cf_clearance", event.target.value)}
                 placeholder="Tùy chọn: chỉ điền giá trị cf_clearance"
-                className="h-10 rounded-xl border-stone-200 bg-white font-mono text-xs"
+                className="h-10 rounded-xl border-border bg-surface font-mono text-xs"
                 disabled={!runtimeEnabled || clearanceMode !== "manual"}
               />
             </div>
 
-            <label className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-surface-secondary px-4 py-3 text-sm text-content-secondary">
               <Checkbox
                 checked={Boolean(clearance.warm_up_on_start)}
                 onCheckedChange={(checked) => setProxyRuntimeClearanceField("warm_up_on_start", Boolean(checked))}
                 disabled={!runtimeEnabled || clearanceMode === "none"}
               />
-              Khởi động trước Clearance khi bắt đầu
+              Lấy sẵn clearance khi khởi động
             </label>
 
             <div className="space-y-2">
-              <label className="text-sm text-stone-700">URL đích kiểm tra</label>
+              <label className="text-sm text-content-secondary">URL dùng để kiểm tra</label>
               <Input
                 value={targetUrl}
                 onChange={(event) => setTargetUrl(event.target.value)}
                 placeholder="https://chatgpt.com"
-                className="h-10 rounded-xl border-stone-200 bg-white"
+                className="h-10 rounded-xl border-border bg-surface"
                 disabled={!runtimeEnabled || clearanceMode === "none"}
               />
             </div>
@@ -343,7 +343,7 @@ export function ProxyRuntimeCard() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 rounded-xl border-stone-200 bg-white px-4 text-stone-700"
+                className="h-9 rounded-xl border-border bg-surface px-4 text-content-secondary"
                 onClick={() => void handleTestClearance()}
                 disabled={isTestingClearance || !runtimeEnabled || clearanceMode === "none"}
               >
@@ -353,10 +353,10 @@ export function ProxyRuntimeCard() {
             </div>
 
             {clearanceResult ? (
-              <div className={`rounded-xl border px-3 py-2 text-xs leading-6 md:col-span-2 ${clearanceResult.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-rose-200 bg-rose-50 text-rose-800"}`}>
+              <div className={`rounded-xl border px-3 py-2 text-xs leading-6 md:col-span-2 ${clearanceResult.ok ? "border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300" : "border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/20 text-rose-800 dark:text-rose-300"}`}>
                 {clearanceResult.ok
-                  ? `Clearance có sẵn: ${clearanceResult.has_cookies ? "Đã lấy Cookie" : "Không có Cookie"}, thời gian ${clearanceResult.latency_ms} ms`
-                  : `Clearance không có sẵn: ${clearanceResult.error ?? clearanceResult.status} (thời gian ${clearanceResult.latency_ms} ms)`}
+                  ? `Clearance hoạt động: ${clearanceResult.has_cookies ? "Đã lấy Cookie" : "Không có Cookie"}, thời gian ${clearanceResult.latency_ms} ms`
+                  : `Clearance không hoạt động: ${clearanceResult.error ?? clearanceResult.status} (thời gian ${clearanceResult.latency_ms} ms)`}
               </div>
             ) : null}
           </div>
@@ -365,7 +365,7 @@ export function ProxyRuntimeCard() {
         <div className="flex justify-end">
           <Button
             type="button"
-            className="h-10 rounded-xl bg-stone-950 px-5 text-white hover:bg-stone-800"
+            className="h-10 rounded-xl bg-primary-600 px-5 text-white hover:bg-primary-700"
             onClick={() => void saveConfig()}
             disabled={isSavingConfig}
           >
