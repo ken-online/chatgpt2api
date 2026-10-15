@@ -2716,7 +2716,7 @@ class OpenAIBackendAPI:
         watchdog = threading.Timer(hard_cap_secs, response.close)
         watchdog.daemon = True
         watchdog.start()
-        timeout_message = f"Luồng tạo ảnh vượt giới hạn cứng {int(hard_cap_secs)} giây, đã buộc ngắt (upstream có thể chưa tạo ảnh)"
+        timeout_message = f"Stream tạo ảnh vượt giới hạn cứng {int(hard_cap_secs)} giây, đã buộc ngắt (upstream có thể chưa tạo ảnh)"
         try:
             for payload in iter_sse_payloads(response):
                 yield payload

@@ -355,7 +355,7 @@ export function ImageComposer({
                     >
                       <h3 className="mb-3 text-base font-semibold text-content">Cài đặt hình ảnh</h3>
                       <div className="mb-3">
-                        <div className="mb-2 text-sm font-medium text-content">Mô hình</div>
+                        <div className="mb-2 text-sm font-medium text-content">Model</div>
                         <Select
                           value={imageModel}
                           onValueChange={(value) => {

@@ -67,7 +67,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Tổng tài khoản" value={String(total)} sub={`${active} bình thường`} icon={STAT_ICONS.total} />
-        <StatCard label="Hạn mức còn" value={String(quotaSum)} sub="tổng số ảnh" icon={STAT_ICONS.quota} />
+        <StatCard label="Quota còn" value={String(quotaSum)} sub="tổng số ảnh" icon={STAT_ICONS.quota} />
         <StatCard label="Ảnh hôm nay" value={String(todayCount)} sub={`${todaySuccess} thành công`} icon={STAT_ICONS.today} />
         <StatCard
           label="Tỉ lệ thành công"
@@ -87,7 +87,7 @@ export default function DashboardPage() {
             <StatusTile bg="bg-amber-100 dark:bg-amber-950/30" text="text-amber-800 dark:text-amber-300" n={limited} l="Giới hạn" />
             <StatusTile bg="bg-red-100 dark:bg-red-950/30" text="text-red-800 dark:text-red-300" n={abnormal} l="Bất thường" />
             <StatusTile bg="bg-surface-secondary" text="text-content-secondary" n={disabled} l="Vô hiệu hoá" />
-            <StatusTile bg="bg-violet-100 dark:bg-violet-950/30" text="text-violet-800 dark:text-violet-300" n={quotaSum} l="Hạn mức" />
+            <StatusTile bg="bg-violet-100 dark:bg-violet-950/30" text="text-violet-800 dark:text-violet-300" n={quotaSum} l="Quota" />
           </CardContent>
         </Card>
         <Card>

@@ -35,7 +35,7 @@ class AuthService:
 
     @staticmethod
     def _default_name(role: object) -> str:
-        return "Khoá quản trị viên" if str(role or "").strip().lower() == "admin" else "Người dùng thường"
+        return "Admin key" if str(role or "").strip().lower() == "admin" else "User"
 
     def _normalize_item(self, raw: object) -> dict[str, object] | None:
         if not isinstance(raw, dict):

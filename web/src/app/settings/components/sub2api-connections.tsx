@@ -372,7 +372,7 @@ export function Sub2APIConnections() {
         ),
       );
       setBrowserOpen(false);
-      toast.success("Tác vụ nhập khẩu đã khởi động");
+      toast.success("Đã bắt đầu import job");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể khởi động nhập khẩu");
     } finally {
@@ -483,7 +483,7 @@ export function Sub2APIConnections() {
 
                     {importJob ? (
                       <div className="space-y-2 rounded-xl bg-surface-secondary px-3 py-3">
-                        <div className="text-xs font-medium tracking-[0.16em] text-content-tertiary uppercase">Tác vụ nhập khẩu</div>
+                        <div className="text-xs font-medium tracking-[0.16em] text-content-tertiary uppercase">Import job</div>
                         {(() => {
                           const progress =
                             importJob.total > 0
@@ -497,7 +497,7 @@ export function Sub2APIConnections() {
                                     Trạng thái {importJob.status}, đã xử lý {importJob.completed}/{importJob.total}
                                   </div>
                                   <div className="truncate text-xs text-content-tertiary">
-                                    Tác vụ {importJob.job_id.slice(0, 8)} · {importJob.created_at}
+                                    Job {importJob.job_id.slice(0, 8)} · {importJob.created_at}
                                   </div>
                                 </div>
                                 <Badge

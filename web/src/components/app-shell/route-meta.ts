@@ -34,7 +34,7 @@ export const ROUTE_META: Record<string, RouteMeta> = {
   },
   "/logs": {
     title: "Logs",
-    description: "Nhật ký hoạt động hệ thống",
+    description: "System Logs",
     adminSidebar: true,
     userAccessible: false,
   },

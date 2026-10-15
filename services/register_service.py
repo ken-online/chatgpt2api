@@ -89,7 +89,7 @@ class RegisterService:
             self._save()
             self._runner = threading.Thread(target=self._run, daemon=True, name="openai-register")
             self._runner.start()
-            self._append_log(f"Tác vụ đăng ký đã khởi động, mode={self._config['mode']}, số luồng={self._config['threads']}", "yellow")
+            self._append_log(f"Bắt đầu đăng ký, mode={self._config['mode']}, threads={self._config['threads']}", "yellow")
             return self.get()
 
     def stop(self) -> dict:
@@ -184,7 +184,7 @@ class RegisterService:
         with self._lock:
             self._config["enabled"] = False
             self._save()
-        self._append_log(f"Tác vụ đăng ký kết thúc, thành công {success}, thất bại {fail}", "yellow")
+        self._append_log(f"Đăng ký kết thúc, thành công {success}, thất bại {fail}", "yellow")
 
 
 register_service = RegisterService(REGISTER_FILE)

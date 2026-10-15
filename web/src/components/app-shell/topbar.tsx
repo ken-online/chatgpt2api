@@ -28,7 +28,7 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
   const meta = getRouteMeta(pathname);
   if (!meta || !session) return null;
 
-  const roleLabel = session.role === "admin" ? "Quản trị viên" : "Người dùng";
+  const roleLabel = session.role === "admin" ? "Admin" : "User";
 
   return (
     <header className="sticky top-0 z-30 h-16 glass-panel border-b border-border flex items-center px-3 gap-2 sm:px-6 sm:gap-4">

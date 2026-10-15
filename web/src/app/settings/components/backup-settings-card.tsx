@@ -68,7 +68,7 @@ const includeLabels: Array<{ key: keyof BackupInclude; label: string }> = [
   { key: "register", label: "Cấu hình đăng ký" },
   { key: "cpa", label: "Cấu hình CPA" },
   { key: "sub2api", label: "Cấu hình Sub2API" },
-  { key: "logs", label: "Nhật ký lập lịch và gọi" },
+  { key: "logs", label: "Logs lập lịch và gọi API" },
   { key: "image_tasks", label: "Bản ghi tác vụ ảnh" },
   { key: "accounts_snapshot", label: "Ảnh chụp tài khoản" },
   { key: "auth_keys_snapshot", label: "Ảnh chụp User Key" },

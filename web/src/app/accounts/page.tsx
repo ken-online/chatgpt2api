@@ -719,8 +719,8 @@ function AccountsPageContent() {
     try {
       const data = await testProxy(candidate);
       data.result.ok
-        ? toast.success(`Máy chủ proxy khả dụng（${data.result.latency_ms} ms，HTTP ${data.result.status}）`)
-        : toast.error(`Máy chủ proxy không khả dụng：${data.result.error ?? "Lỗi không xác định"}`);
+        ? toast.success(`Proxy khả dụng（${data.result.latency_ms} ms，HTTP ${data.result.status}）`)
+        : toast.error(`Proxy không khả dụng：${data.result.error ?? "Lỗi không xác định"}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể kiểm tra máy chủ proxy");
     } finally {
@@ -876,7 +876,7 @@ function AccountsPageContent() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-content">Máy chủ proxy tài khoản</label>
+              <label className="text-sm font-medium text-content">Proxy tài khoản</label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={editProxy}
@@ -942,7 +942,7 @@ function AccountsPageContent() {
         <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
           <CardContent className="p-4">
             <div className="mb-3 text-sm font-medium text-content">
-              Mô hình có sẵn trong hệ thống
+              Model có sẵn trong hệ thống
               <span className="ml-1 text-content-tertiary">({availableModels.length})</span>
             </div>
             <div className="flex flex-wrap gap-2">

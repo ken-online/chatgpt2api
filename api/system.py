@@ -348,7 +348,7 @@ td{{padding:8px 12px;border-top:1px solid #2a2d3a;font-size:14px}}tr:hover td{{b
 <div class="card"><div class="label">Tài khoản hiện tại</div><div class="value blue">{stats['total']}</div></div>
 <div class="card"><div class="label">Tích luỹ kho</div><div class="value">{stats['cumulative_total']}</div></div>
 <div class="card"><div class="label">Tài khoản có sẵn</div><div class="value green">{stats['active']}</div></div>
-<div class="card"><div class="label">Hạn mức còn lại</div><div class="value">{stats['total_quota']}</div></div>
+<div class="card"><div class="label">Quota còn lại</div><div class="value">{stats['total_quota']}</div></div>
 <div class="card"><div class="label">Giới hạn tốc độ</div><div class="value yellow">{stats['limited']}</div></div>
 <div class="card"><div class="label">Bất thường</div><div class="value red">{stats['abnormal']}</div></div>
 <div class="card"><div class="label">Vô hiệu hóa</div><div class="value">{stats['disabled']}</div></div>

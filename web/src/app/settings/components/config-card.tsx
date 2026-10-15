@@ -49,7 +49,7 @@ export function SystemSettingsCard() {
       </div>
       <CardContent className="space-y-4 p-6">
         <div className="rounded-xl border border-border bg-surface-secondary px-4 py-3 text-sm leading-6 text-content-secondary">
-          Khóa đăng nhập quản trị viên tiếp tục được đọc từ cấu hình triển khai và không còn được hiển thị trên trang này. Để phân phát cho người khác, vui lòng tạo khóa người dùng thông thường bên dưới.
+          Admin key tiếp tục được đọc từ cấu hình triển khai và không còn được hiển thị trên trang này. Để phân phát cho người khác, vui lòng tạo khóa người dùng thông thường bên dưới.
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
@@ -232,7 +232,7 @@ export function AccountLogsCard() {
           <div className="flex size-8 items-center justify-center rounded-lg bg-surface-secondary">
             <Shield className="size-4 text-content-secondary" />
           </div>
-          <h2 className="font-semibold text-content">Tài khoản & Nhật ký</h2>
+          <h2 className="font-semibold text-content">Tài khoản & Logs</h2>
         </div>
         <span className="hidden text-sm text-content-tertiary sm:block">Quản lý tự động & mức log</span>
       </div>

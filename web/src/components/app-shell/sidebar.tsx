@@ -32,7 +32,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
     ({ meta }) => meta && meta.adminSidebar && (isAdmin || meta.userAccessible),
   );
 
-  const displayName = session.name?.trim() || (isAdmin ? "Quản trị viên" : "Người dùng");
+  const displayName = session.name?.trim() || (isAdmin ? "Admin" : "User");
   const initial = (displayName[0] || "?").toUpperCase();
   const subjectId = session.subjectId?.trim() || "local";
 

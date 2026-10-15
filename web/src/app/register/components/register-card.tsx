@@ -70,7 +70,7 @@ export function RegisterConfigCard() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="total">Tổng số đăng ký</SelectItem>
-                <SelectItem value="quota">Hạn mức còn lại</SelectItem>
+                <SelectItem value="quota">Quota còn lại</SelectItem>
                 <SelectItem value="available">Số tài khoản có sẵn</SelectItem>
               </SelectContent>
             </Select>
@@ -104,7 +104,7 @@ export function RegisterConfigCard() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-content">Hạn mức mục tiêu</label>
+            <label className="text-sm text-content">Quota mục tiêu</label>
             <Input
               value={String(config.target_quota || "")}
               onChange={(e) => setTargetQuota(e.target.value)}
@@ -297,7 +297,7 @@ export function RegisterEmailCard() {
                   )}
                   {(type === "tempmail_lol" || type === "moemail" || type === "duckmail" || type === "gptmail" || type === "yyds_mail") && (
                     <div className="space-y-2">
-                      <label className="text-sm text-content">Khóa API</label>
+                      <label className="text-sm text-content">API Key</label>
                       <Input value={String(provider.api_key || "")} onChange={(e) => updateProvider(index, { api_key: e.target.value })} className="h-10 rounded-xl border-border bg-surface" disabled={config.enabled} />
                     </div>
                   )}
@@ -370,10 +370,10 @@ export function RegisterStatsCard() {
     ["Tỷ lệ thành công", `${stats.success_rate || 0}%`],
     ["Thất bại", stats.fail],
     ["Hoàn thành", stats.done],
-    ["Đang chạy / Luồng", `${stats.running} / ${stats.threads}`],
+    ["Đang chạy / Threads", `${stats.running} / ${stats.threads}`],
     ["Thời gian chạy", `${stats.elapsed_seconds || 0}s`],
     ["TB / lần đăng ký", `${stats.avg_seconds || 0}s`],
-    ["Hạn mức hiện tại", stats.current_quota || 0],
+    ["Quota hiện tại", stats.current_quota || 0],
     ["Tài khoản bình thường", stats.current_available || 0],
   ];
 
@@ -436,7 +436,7 @@ export function RegisterLogsCard() {
     <Card className="rounded-2xl border-border/80 bg-surface shadow-sm">
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <div>
-          <h2 className="font-semibold text-content">Nhật ký thời gian thực</h2>
+          <h2 className="font-semibold text-content">Realtime Logs</h2>
           <p className="mt-0.5 text-xs text-amber-700">Lỗi HTTP 400: email bị khóa vì lạm dụng, cần đổi tên miền mới.</p>
         </div>
         <Badge variant="secondary" className="rounded-md">{logs.length}</Badge>

@@ -24,8 +24,8 @@ const LogType = {
 } as const;
 
 const typeLabels: Record<string, string> = {
-  [LogType.Call]: "Nhật ký gọi API",
-  [LogType.Account]: "Nhật ký quản lý tài khoản",
+  [LogType.Call]: "API Logs",
+  [LogType.Account]: "Account Logs",
 };
 
 function getDetailText(item: SystemLog, key: string) {
@@ -146,8 +146,8 @@ function LogsContent() {
         <Select value={type} onValueChange={setType}>
           <SelectTrigger className="h-10 w-[200px] rounded-xl border-border bg-surface"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value={LogType.Call}>Nhật ký gọi API</SelectItem>
-            <SelectItem value={LogType.Account}>Nhật ký quản lý tài khoản</SelectItem>
+            <SelectItem value={LogType.Call}>API Logs</SelectItem>
+            <SelectItem value={LogType.Account}>Account Logs</SelectItem>
           </SelectContent>
         </Select>
         <DateRangeFilter startDate={startDate} endDate={endDate} onChange={(start, end) => { setStartDate(start); setEndDate(end); }} />

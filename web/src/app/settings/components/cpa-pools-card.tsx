@@ -112,7 +112,7 @@ export function CPAPoolsCard() {
 
                   {importJob ? (
                     <div className="space-y-2 rounded-xl bg-surface-secondary px-3 py-3">
-                      <div className="text-xs font-medium tracking-[0.16em] text-content-tertiary uppercase">Tác vụ nhập khẩu</div>
+                      <div className="text-xs font-medium tracking-[0.16em] text-content-tertiary uppercase">Import job</div>
                       <div className="rounded-lg border border-border bg-surface px-3 py-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="min-w-0">
@@ -120,7 +120,7 @@ export function CPAPoolsCard() {
                               Trạng thái {importJob.status}, đã xử lý {importJob.completed}/{importJob.total}
                             </div>
                             <div className="truncate text-xs text-content-tertiary">
-                              Tác vụ {importJob.job_id.slice(0, 8)} · {importJob.created_at}
+                              Job {importJob.job_id.slice(0, 8)} · {importJob.created_at}
                             </div>
                           </div>
                           <Badge

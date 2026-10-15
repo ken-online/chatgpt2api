@@ -252,7 +252,7 @@ class EditableFileTaskService:
         if result:
             detail["result"] = result
         try:
-            log_service.add(LOG_TYPE_CALL, f"Tác vụ tạo {kind.upper()} {'thất bại' if status == 'failed' else 'hoàn thành'}", detail)
+            log_service.add(LOG_TYPE_CALL, f"Tạo {kind.upper()} {'thất bại' if status == 'failed' else 'hoàn thành'}", detail)
         except Exception:
             pass
 
