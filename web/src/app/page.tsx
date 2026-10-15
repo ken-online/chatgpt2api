@@ -83,11 +83,11 @@ export default function DashboardPage() {
             <CardTitle className="text-sm">Trạng thái tài khoản</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-2.5">
-            <StatusTile bg="bg-emerald-100" text="text-emerald-800" n={active} l="Bình thường" />
-            <StatusTile bg="bg-amber-100" text="text-amber-800" n={limited} l="Giới hạn" />
-            <StatusTile bg="bg-red-100" text="text-red-800" n={abnormal} l="Bất thường" />
+            <StatusTile bg="bg-emerald-100 dark:bg-emerald-950/30" text="text-emerald-800 dark:text-emerald-300" n={active} l="Bình thường" />
+            <StatusTile bg="bg-amber-100 dark:bg-amber-950/30" text="text-amber-800 dark:text-amber-300" n={limited} l="Giới hạn" />
+            <StatusTile bg="bg-red-100 dark:bg-red-950/30" text="text-red-800 dark:text-red-300" n={abnormal} l="Bất thường" />
             <StatusTile bg="bg-surface-secondary" text="text-content-secondary" n={disabled} l="Vô hiệu hoá" />
-            <StatusTile bg="bg-violet-100" text="text-violet-800" n={quotaSum} l="Hạn mức" />
+            <StatusTile bg="bg-violet-100 dark:bg-violet-950/30" text="text-violet-800 dark:text-violet-300" n={quotaSum} l="Hạn mức" />
           </CardContent>
         </Card>
         <Card>

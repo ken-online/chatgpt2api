@@ -31,8 +31,8 @@ export default function DebugPage() {
   }
 
   return (
-    <Tabs defaultValue="skills" className="mx-auto flex min-h-[calc(100vh-49px)] w-full max-w-[1600px] flex-col gap-4 px-4 pt-3 pb-6 md:px-8">
-      <TabsList variant="line" className="w-full">
+    <Tabs defaultValue="skills" className="mx-auto flex min-h-[calc(100vh-49px)] w-full max-w-[1600px] min-w-0 flex-col gap-4 pt-3 pb-6 sm:px-4 md:px-8">
+      <TabsList variant="line" className="w-full justify-start overflow-x-auto">
         {tabs.map(({ value, title }) => (
           <TabsTrigger key={value} value={value}>
             {title}

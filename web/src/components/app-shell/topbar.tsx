@@ -40,13 +40,13 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
       >
         <Menu className="h-5 w-5" />
       </button>
-      <div className="min-w-0 max-w-[180px] sm:max-w-[220px] sm:shrink-0 lg:max-w-[260px]">
+      <div className="min-w-0 flex-1 sm:flex-none sm:max-w-[220px] sm:shrink-0 lg:max-w-[260px]">
         <h1 className="text-base sm:text-lg font-semibold text-content truncate leading-tight">{meta.title}</h1>
         {meta.description ? (
           <p className="hidden sm:block text-xs text-content-tertiary truncate">{meta.description}</p>
         ) : null}
       </div>
-      <div className="flex min-w-0 items-center gap-2 sm:flex-1">{actions}</div>
+      <div className="flex shrink-0 items-center gap-2 sm:min-w-0 sm:flex-1 sm:shrink">{actions}</div>
       <div className="ml-auto flex items-center gap-1 shrink-0 sm:gap-2">
         <span className="hidden md:inline-flex items-center gap-2 rounded-full bg-primary-500/10 px-3 py-1.5 text-xs font-medium text-primary-600">
           <span className="h-1.5 w-1.5 rounded-full bg-primary-500" />
@@ -56,7 +56,7 @@ export function Topbar({ onOpenNav }: { onOpenNav: () => void }) {
         <VersionReleaseDialog />
         <button
           type="button"
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-surface-secondary text-content-secondary transition-colors hover:bg-surface-tertiary hover:text-content"
+          className="relative hidden h-9 w-9 items-center sm:flex justify-center rounded-lg bg-surface-secondary text-content-secondary transition-colors hover:bg-surface-tertiary hover:text-content"
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />

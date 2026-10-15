@@ -213,7 +213,7 @@ function LogsContent() {
                         <Checkbox checked={selectedSet.has(item.id)} onCheckedChange={(checked) => toggleIds([item.id], Boolean(checked))} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{item.time}</TableCell>
-                      <TableCell><Badge variant="secondary" className="rounded-md">{typeLabels[item.type] || item.type}</Badge></TableCell>
+                      <TableCell><Badge variant="secondary" className="rounded-md whitespace-nowrap">{typeLabels[item.type] || item.type}</Badge></TableCell>
                       {isCallLog ? <TableCell>{getDetailText(item, "key_name")}</TableCell> : null}
                       {isCallLog ? <TableCell>{formatDuration(item)}</TableCell> : null}
                       {isCallLog ? (
