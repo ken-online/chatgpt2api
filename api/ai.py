@@ -231,7 +231,7 @@ def create_router() -> APIRouter:
     @router.post("/v1/ppt/generations")
     async def create_ppt_task(body: EditableFileTaskRequest, request: Request, authorization: str | None = Header(default=None)):
         identity = require_identity(authorization)
-        await filter_or_log(LoggedCall(identity, "/v1/ppt/generations", "gpt-5-5-thinking", "Tạo PPT", request_text=body.prompt), body.prompt)
+        await filter_or_log(LoggedCall(identity, "/v1/ppt/generations", "gpt-5-6-thinking", "Tạo PPT", request_text=body.prompt), body.prompt)
         return await run_in_threadpool(
             editable_file_task_service.submit_ppt,
             identity,
@@ -244,7 +244,7 @@ def create_router() -> APIRouter:
     @router.post("/v1/psd/generations")
     async def create_psd_task(body: EditableFileTaskRequest, request: Request, authorization: str | None = Header(default=None)):
         identity = require_identity(authorization)
-        await filter_or_log(LoggedCall(identity, "/v1/psd/generations", "gpt-5-5-thinking", "Tạo PSD", request_text=body.prompt), body.prompt)
+        await filter_or_log(LoggedCall(identity, "/v1/psd/generations", "gpt-5-6-thinking", "Tạo PSD", request_text=body.prompt), body.prompt)
         return await run_in_threadpool(
             editable_file_task_service.submit_psd,
             identity,

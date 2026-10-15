@@ -77,10 +77,10 @@ export function SystemSettingsCard() {
             <Input
               value={String(config?.default_upstream_model_name || "")}
               onChange={(e) => setDefaultUpstreamModelName(e.target.value)}
-              placeholder="gpt-5-5"
+              placeholder="gpt-image-2"
               className="h-10 rounded-xl border-border bg-surface"
             />
-            <p className="text-xs text-content-tertiary">Tên model gửi lên upstream khi gpt-image-2 tạo ảnh, mặc định gpt-5-5.</p>
+            <p className="text-xs text-content-tertiary">Tên model gửi lên upstream khi gpt-image-2 tạo ảnh, mặc định gpt-image-2.</p>
           </div>
           <div className="space-y-2">
             <label className="text-sm text-content">Mức độ suy nghĩ mặc định</label>
