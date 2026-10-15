@@ -9,7 +9,7 @@ import { ROUTE_META, SIDEBAR_ORDER, normalizePathname } from "./route-meta";
 import { getValidatedAuthSession } from "@/lib/auth-session";
 import { clearStoredAuthSession, type StoredAuthSession } from "@/store/auth";
 
-export function Sidebar() {
+export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const currentPath = normalizePathname(pathname);
   const router = useRouter();
@@ -42,7 +42,14 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-60 border-r border-border bg-surface flex flex-col">
+    <>
+    {open ? <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} aria-hidden /> : null}
+    <aside
+      className={cn(
+        "fixed left-0 top-0 z-50 h-dvh w-60 border-r border-border bg-surface flex flex-col transition-transform duration-200 lg:z-40 lg:translate-x-0",
+        open ? "translate-x-0" : "-translate-x-full",
+      )}
+    >
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-border">
         <span className="text-[19px] font-bold tracking-tight bg-gradient-to-r from-primary-500 to-primary-400 bg-clip-text text-transparent">
@@ -59,6 +66,7 @@ export function Sidebar() {
             <Link
               key={path}
               href={path}
+              onClick={onClose}
               className={cn(
                 "flex items-center px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                 active
@@ -94,5 +102,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { PageHeaderProvider } from "./page-header-context";
 import { normalizePathname } from "./route-meta";
 import { Sidebar } from "./sidebar";
@@ -10,6 +11,8 @@ const NO_SHELL_ROUTES = new Set(["/login"]);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // Ngăn kéo điều hướng trên mobile (< lg)
+  const [navOpen, setNavOpen] = useState(false);
 
   if (NO_SHELL_ROUTES.has(normalizePathname(pathname))) {
     return <>{children}</>;
@@ -18,10 +21,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <PageHeaderProvider>
       <div className="min-h-screen">
-        <Sidebar />
-        <div className="ml-60 flex min-h-screen flex-col">
-          <Topbar />
-          <main className="flex-1 p-6 bg-bg-app">{children}</main>
+        <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
+        <div className="flex min-h-screen min-w-0 flex-col lg:ml-60">
+          <Topbar onOpenNav={() => setNavOpen(true)} />
+          <main className="flex-1 bg-bg-app p-3 sm:p-6">{children}</main>
         </div>
       </div>
     </PageHeaderProvider>
